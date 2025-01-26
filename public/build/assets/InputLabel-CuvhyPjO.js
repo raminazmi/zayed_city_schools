@@ -1,0 +1,1 @@
+import{u as x,j as m}from"./app-DrYGkpmb.js";function i({value:t,className:e="",children:r,...s}){const a=x(o=>o.theme.darkMode==="dark");return m.jsx("label",{...s,className:`block font-medium text-sm ${a?"text-TextLight":"text-TextDark"}`+e,children:t||r})}export{i as I};

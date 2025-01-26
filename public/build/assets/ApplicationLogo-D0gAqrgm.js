@@ -1,0 +1,1 @@
+import{u as o,j as e}from"./app-DrYGkpmb.js";const r="/build/assets/logo-DY94QKny.png";function n({width:s}){const a=o(t=>t.theme.darkMode==="dark");return o(t=>t.language.current),e.jsx("div",{className:`text-xl font-bold  mx-auto lg:mx-0 ${a?"text-TextLight":"text-TextDark"}`,children:e.jsx("img",{src:r,alt:"Logo",style:{width:`${s}`,height:"auto"}})})}export{n as A};
