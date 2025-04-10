@@ -9,7 +9,7 @@ export default function Welcome({ auth, canLogin, canRegister }) {
     const language = useSelector((state) => state.language.current);
     const t = translations[language];
     return (
-        <div className={`min-h-screen flex flex-col items-center justify-center ${isDark ? 'bg-DarkBG1' : 'bg-LightBG2'} `}>
+        <div className={`min-h-screen  text-center flex flex-col items-center justify-center ${isDark ? 'bg-DarkBG1' : 'bg-LightBG2'} `}>
             <ApplicationLogo width="100px" />
             <h1 className={`mt-6 text-3xl text-center font-bold ${isDark ? 'text-TextLight' : 'text-TextDark'} `}>{t['Welcome']}</h1>
             <p className={`mt-4 text-lg text-center ${isDark ? 'text-TextLight' : 'text-TextDark'} `}>{t['easily_manage']}</p>
