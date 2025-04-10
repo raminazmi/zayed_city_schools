@@ -20,7 +20,6 @@ class ImportStudents extends Command
             return;
         }
 
-
         Excel::import(new StudentsImport, $file);
         $this->info("تم استيراد البيانات بنجاح!");
     }
