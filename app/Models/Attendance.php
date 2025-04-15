@@ -16,6 +16,7 @@ class Attendance extends Model
         'status',
         'notes'
     ];
+
     protected $casts = [
         'date' => 'date'
     ];
@@ -27,6 +28,6 @@ class Attendance extends Model
 
     public function student()
     {
-        return $this->belongsTo(Student::class);
+        return $this->belongsTo(Student::class, 'student_id');
     }
 }

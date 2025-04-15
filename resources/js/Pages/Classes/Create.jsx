@@ -8,12 +8,13 @@ import TextInput from '@/Components/TextInput';
 import InputError from '@/Components/InputError';
 import { translations } from '@translations';
 import { useSelector } from 'react-redux';
+import Select from 'react-select';
 
 export default function AddClassPage({ auth, teachers }) {
     const { data, setData, post, errors, processing } = useForm({
         name: '',
         section: '',
-        teacher_id: ''
+        teacher_ids: [],
     });
 
     const handleSubmit = (e) => {
@@ -26,6 +27,11 @@ export default function AddClassPage({ auth, teachers }) {
         });
     };
 
+    const handleTeacherChange = (selectedOptions) => {
+        const selectedTeacherIds = selectedOptions ? selectedOptions.map(option => option.value) : [];
+        setData('teacher_ids', selectedTeacherIds);
+    };
+
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
     const t = translations[language];
@@ -33,6 +39,67 @@ export default function AddClassPage({ auth, teachers }) {
         { label: t['classroom_management'], href: '/admin/dashboard/classes' },
         { label: t['add_class'] }
     ];
+
+    const teacherOptions = teachers.map(teacher => ({
+        value: teacher.id,
+        label: teacher.name,
+    }));
+
+    const customStyles = {
+        control: (provided) => ({
+            ...provided,
+            backgroundColor: isDark ? '#2D2D2D' : '#ffffff',
+            borderColor: isDark ? '#4B4B4B' : '#F5F5F5',
+            color: isDark ? '#E5E7EB' : '#1F2937',
+            padding: '5px 0px',
+            boxShadow: 'none',
+            '&:hover': {
+                borderColor: '#0EA5E9',
+            },
+        }),
+        menu: (provided) => ({
+            ...provided,
+            backgroundColor: isDark ? '#2D2D2D' : '#FFFFFF',
+        }),
+        option: (provided, state) => ({
+            ...provided,
+            backgroundColor: state.isSelected
+                ? '#0EA5E9'
+                : state.isFocused
+                    ? isDark ? '#4B4B4B' : '#E5E7EB'
+                    : isDark ? '#2D2D2D' : '#FFFFFF',
+            color: isDark ? '#E5E7EB' : '#1F2937',
+            '&:active': {
+                backgroundColor: '#0EA5E9',
+            },
+        }),
+        multiValue: (provided) => ({
+            ...provided,
+            backgroundColor: isDark ? '#4B4B4B' : '#E5E7EB',
+        }),
+        multiValueLabel: (provided) => ({
+            ...provided,
+            color: isDark ? '#E5E7EB' : '#1F2937',
+        }),
+        multiValueRemove: (provided) => ({
+            ...provided,
+            color: isDark ? '#E5E7EB' : '#1F2937',
+            '&:hover': {
+                backgroundColor: '#EF4444',
+                color: '#FFFFFF',
+            },
+        }),
+        placeholder: (provided) => ({
+            ...provided,
+            color: isDark ? '#9CA3AF' : '#6B7280',
+        }),
+        singleValue: (provided) => ({
+            ...provided,
+            color: isDark ? '#E5E7EB' : '#1F2937',
+        }),
+    };
+
+    const selectedTeachers = teacherOptions.filter(option => data.teacher_ids.includes(option.value));
 
     return (
         <AuthenticatedLayout user={auth.user}>
@@ -42,7 +109,7 @@ export default function AddClassPage({ auth, teachers }) {
                     <div className="py-6">
                         <div className="mx-auto px-4 sm:px-6 md:px-14">
                             <Breadcrumb items={breadcrumbItems} />
-                            <h1 className="text-2xl sm:text-3xl  mt-3 font-bold text-primaryColor">
+                            <h1 className="text-2xl sm:text-3xl mt-3 font-bold text-primaryColor">
                                 {t['add_class']}
                             </h1>
                         </div>
@@ -68,6 +135,7 @@ export default function AddClassPage({ auth, teachers }) {
                                                 id="section"
                                                 type="text"
                                                 name="section"
+                                                placeholder="e.g., 05[Adv-3rdLanguage]/1"
                                                 className={`mt-1 block w-full ${isDark ? 'bg-DarkBG1' : 'bg-TextLight'}`}
                                                 value={data.section}
                                                 onChange={(e) => setData('section', e.target.value)}
@@ -76,22 +144,21 @@ export default function AddClassPage({ auth, teachers }) {
                                         </div>
                                     </div>
                                     <div>
-                                        <InputLabel value={t['select_teacher']} />
-                                        <select
-                                            id="teacher_id"
-                                            name="teacher_id"
-                                            className={`w-[100%] focus:border-primaryColor focus:ring-primaryColor rounded-md shadow-sm border-none h-[45px] mt-3 ${isDark ? 'bg-DarkBG1 text-TextLight' : 'bg-LightBG1 text-TextDark border-gray-400 border-[0.1px]'} `}
-                                            value={data.teacher_id}
-                                            onChange={(e) => setData('teacher_id', e.target.value)}
-                                        >
-                                            <option value="" disabled>{t['select_teacher']}</option>
-                                            {teachers.map((teacher) => (
-                                                <option key={teacher.id} value={teacher.id}>
-                                                    {teacher.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {errors.teacher_id && <InputError message={errors.teacher_id} className="mt-2" />}
+                                        <InputLabel value={t['select_teachers']} />
+                                        <Select
+                                            id="teacher_ids"
+                                            name="teacher_ids"
+                                            isMulti
+                                            options={teacherOptions}
+                                            value={selectedTeachers}
+                                            onChange={handleTeacherChange}
+                                            styles={customStyles}
+                                            className="mt-3"
+                                            classNamePrefix="select"
+                                            placeholder={t['select_teachers_placeholder']}
+                                            noOptionsMessage={() => t['no_teachers_available']}
+                                        />
+                                        {errors.teacher_ids && <InputError message={errors.teacher_ids} className="mt-2" />}
                                     </div>
                                 </div>
                                 <div className="flex justify-end">

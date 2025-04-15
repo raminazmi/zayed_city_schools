@@ -16,22 +16,33 @@ class StudentController extends Controller
 {
     public function index()
     {
-        $classes = ClassRoom::with(['teacher', 'students'])
-            ->select('id', 'name', 'section', 'teacher_id', 'created_at')
-            ->latest()
+        $classes = ClassRoom::with('teachers:id,name')
+            ->withCount('students')
+            ->select('id', 'name', 'section', 'class_description', 'section_number', 'path')
+            ->orderByRaw('CAST(class_description AS UNSIGNED) ASC')
+            ->orderByRaw("CASE WHEN path = 'Adv-3rdLanguage' THEN 0 ELSE 1 END")
+            ->orderBy('section_number', 'asc')
             ->paginate(9999999999999);
 
         $classesData = $classes->map(function ($class) {
             return [
                 'id' => $class->id,
                 'class_name' => $class->name,
-                'teacher_name' => $class->teacher ? $class->teacher->name : '-',
+                'teacher_name' => $class->teachers->pluck('name')->join(', ') ?: '-',
                 'section' => $class->section,
                 'students_count' => $class->students->count(),
             ];
         });
+
         return Inertia::render('Students/Index', [
             'classes' => $classesData,
+            'pagination' => [
+                'current_page' => $classes->currentPage(),
+                'last_page' => $classes->lastPage(),
+                'per_page' => $classes->perPage(),
+                'total' => $classes->total(),
+                'links' => $classes->links(),
+            ],
         ]);
     }
 
@@ -46,7 +57,6 @@ class StudentController extends Controller
             ->paginate(9999999999999);
 
         $classes = ClassRoom::where('id', $classId)
-            ->select('id', 'name')
             ->get();
 
         return Inertia::render('Students/View', [
@@ -63,7 +73,7 @@ class StudentController extends Controller
         parse_str($parsedUrl['query'], $queryParams);
         $id = isset($queryParams['id']) ? $queryParams['id'] : null;
 
-        $classes = ClassRoom::select('id', 'name')->get();
+        $classes = ClassRoom::select('id', 'name', 'path', 'section_number')->get();
 
         return Inertia::render('Students/Create', [
             'classes' => $classes,
@@ -76,7 +86,7 @@ class StudentController extends Controller
         try {
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'student_number' => ['required', 'string', 'size:6', 'unique:students,student_number'],
+                'student_number' => ['required', 'string', 'max:15', 'unique:students,student_number'], // Increased to 15
                 'class_id' => ['required', 'exists:classes,id'],
                 'parent_whatsapp' => ['required', 'string', 'max:15'],
                 'class_description' => ['required', 'integer'],
@@ -86,7 +96,7 @@ class StudentController extends Controller
                 'name.required' => 'حقل الاسم مطلوب',
                 'name.max' => 'يجب ألا يتجاوز الاسم 255 حرفًا',
                 'student_number.required' => 'حقل رقم الطالب مطلوب',
-                'student_number.size' => 'رقم الطالب يجب أن يتكون من 6 أرقام',
+                'student_number.max' => 'رقم الطالب يجب ألا يتجاوز 15 أحرف',
                 'student_number.unique' => 'رقم الطالب موجود مسبقًا',
                 'parent_whatsapp.max' => 'يجب ألا يزيد حقل WhatsApp الرئيسي عن 15 حرفًا.',
                 'parent_whatsapp.required' => 'حقل رقم واتساب ولي الأمر مطلوب',
@@ -108,7 +118,7 @@ class StudentController extends Controller
         $student = Student::select('id', 'name', 'student_number', 'class_id', 'parent_whatsapp', 'class_description', 'section_number', 'path')
             ->findOrFail($id);
 
-        $classes = ClassRoom::select('id', 'name')->get();
+        $classes = ClassRoom::select('id', 'name', 'path', 'section_number')->get();
         return Inertia::render('Students/Edit', [
             'student' => $student,
             'classes' => $classes,
@@ -120,7 +130,7 @@ class StudentController extends Controller
         try {
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'student_number' => ['required', 'string', 'size:6', 'unique:students,student_number,' . $id],
+                'student_number' => ['required', 'string', 'max:15', 'unique:students,student_number,' . $id], // Increased to 15
                 'class_id' => ['required', 'exists:classes,id'],
                 'parent_whatsapp' => ['required', 'string', 'max:15'],
                 'class_description' => ['required', 'integer'],
@@ -130,7 +140,7 @@ class StudentController extends Controller
                 'name.required' => 'حقل الاسم مطلوب',
                 'name.max' => 'يجب ألا يتجاوز الاسم 255 حرفًا',
                 'student_number.required' => 'حقل رقم الطالب مطلوب',
-                'student_number.size' => 'رقم الطالب يجب أن يتكون من 6 أرقام',
+                'student_number.max' => 'رقم الطالب يجب ألا يتجاوز 15 أحرف',
                 'student_number.unique' => 'رقم الطالب موجود مسبقًا',
                 'parent_whatsapp.max' => 'يجب ألا يزيد حقل WhatsApp الرئيسي عن 15 حرفًا.',
                 'parent_whatsapp.required' => 'حقل رقم واتساب ولي الأمر مطلوب',
@@ -213,14 +223,16 @@ class StudentController extends Controller
     public function import(Request $request)
     {
         try {
+            $teacherCount = Teacher::count();
+            if ($teacherCount < 1) {
+                return redirect()->route('admin.students.index')->with('error', 'يرجى استيراد المعلمين أولاً قبل استيراد الطلاب.');
+            }
 
             $file = $request->file('file');
-
             Excel::import(new StudentsImport, $file);
-
             return redirect()->route('admin.students.index')->with('success', 'تم استيراد البيانات بنجاح!');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return redirect()->route('admin.students.index')->with('error', 'فشل في استيراد البيانات: ' . $e->getMessage());
         }
     }
 }

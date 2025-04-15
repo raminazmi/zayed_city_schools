@@ -121,7 +121,7 @@ export default function AttendancePage({ auth, classroom, students, classId, dat
 
     const breadcrumbItems = [
         { label: t.attendance, href: '/admin/dashboard/attendance' },
-        { label: classroom.name },
+        { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
     return (
@@ -174,8 +174,7 @@ export default function AttendancePage({ auth, classroom, students, classId, dat
                         {!error && (
                             <button
                                 type="button"
-                                className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}
+                                className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 onClick={confirmSave}
                                 disabled={isSubmitting}
                             >

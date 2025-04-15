@@ -25,7 +25,7 @@ export default function DataTable({
   const [filters, setFilters] = useState({});
   const [sortConfig, setSortConfig] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(5);
+  const [perPage, setPerPage] = useState(10);
 
   const isDark = useSelector((state) => state.theme.darkMode === 'dark');
   const language = useSelector((state) => state.language.current);

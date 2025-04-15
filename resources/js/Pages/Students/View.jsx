@@ -18,17 +18,14 @@ export default function StudentsViewPage({ auth, students, classes, classId }) {
     const classroom = classes.find(cls => cls.id);
     const breadcrumbItems = [
         { label: t['student_management'], href: '/admin/dashboard/students' },
-        { label: classroom ? classroom.name : '-' },
-        { label: t['list'] }
+        { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
     const columns = [
         { key: 'student_number', label: t['student_number'], sortable: true },
         { key: 'student_name', label: t['student_name'], sortable: true },
         { key: 'parent_whatsapp', label: t['parent_whatsapp'], sortable: true },
-        { key: 'class_description', label: t['class_description'], sortable: true },
-        { key: 'section_number', label: t['section_number'], sortable: true },
-        { key: 'path', label: t['path'], sortable: true },
+        { key: 'class_description', label: t['class'], sortable: true },
     ];
 
     const tableData = students.data.map(student => {
@@ -38,7 +35,7 @@ export default function StudentsViewPage({ auth, students, classes, classId }) {
             student_number: student.student_number,
             student_name: student.name,
             parent_whatsapp: student.parent_whatsapp,
-            class_description: student.class_description,
+            class_description: student.section_number + ' / ' + '[' + student.path + ']' + ' / ' + student.class_description,
             section_number: student.section_number,
             path: student.path,
         };

@@ -4,8 +4,8 @@ namespace App\Imports;
 
 use App\Models\Teacher;
 use App\Models\User;
-use Maatwebsite\Excel\Concerns\ToModel;
 use Illuminate\Support\Facades\Hash;
+use Maatwebsite\Excel\Concerns\ToModel;
 
 class TeachersImport implements ToModel
 {
@@ -14,29 +14,38 @@ class TeachersImport implements ToModel
     public function model(array $row)
     {
         $this->rowIndex++;
-
         if ($this->rowIndex == 1) {
             return null;
         }
 
-        if (count($row) < 3) {
+        if (empty($row[0]) || empty($row[3])) {
             return null;
         }
 
-        $teacher = Teacher::create([
-            'name' => $row[0],
-            'email' => $row[1],
-            'phone' => $row[2],
+        $name = trim($row[0]);
+        $email = trim($row[3]);
+        $role = trim($row[1]);
+        $grades = trim($row[2]);
+
+        if (Teacher::where('email', $email)->exists()) {
+            return null;
+        }
+
+        $teacher = new Teacher([
+            'name' => $name,
+            'email' => $email,
+            'phone' => null,
+            'role' => $role,
+            'grades' => $grades,
         ]);
 
         User::create([
-            'name' => $row[0],
-            'email' => $row[1],
+            'name' => $name,
+            'email' => $email,
             'password' => Hash::make('123456'),
             'role' => 'teacher',
             'is_first_login' => true,
         ]);
-
         return $teacher;
     }
 }

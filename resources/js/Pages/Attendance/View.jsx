@@ -76,66 +76,17 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
 
     const breadcrumbItems = [
         { label: t.attendance, href: '/admin/dashboard/attendance' },
-        { label: classroom.name },
+        { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
     const generateWhatsAppLink = (row) => {
         const statusText = React.Children.toArray(row.status.props.children).join(' ');
         if (row.parent_whatsapp) {
-            const message = getStatusMessage(statusText, row.student_name, formattedDate, row.notes); // استخدم statusText بدلاً من row.status
+            const message = getStatusMessage(statusText, row.student_name, formattedDate, row.notes);
             return `https://api.whatsapp.com/send?phone=${row.parent_whatsapp}&text=${encodeURIComponent(message)}`;
         }
         return '#';
     };
-
-    /*     const sendWhatsAppMessage = async (row) => {
-            const statusText = React.Children.toArray(row.status.props.children).join(' ');
-            const message = getStatusMessage(statusText, row.student_name, formattedDate, row.notes);
-    
-            if (row.parent_whatsapp) {
-                try {
-                    const response = await axios.post('/admin/send-whatsapp', {
-                        to: row.parent_whatsapp,
-                        message,
-                    }, {
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                    });
-    
-                    if (response.data.success) {
-                        toast.success('تم إرسال الرسالة بنجاح!', {
-                            position: "top-right",
-                            autoClose: 3000,
-                            hideProgressBar: false,
-                            closeOnClick: true,
-                            pauseOnHover: true,
-                            draggable: true,
-                        });
-                    } else {
-                        throw new Error(response.data.message);
-                    }
-                } catch (error) {
-                    toast.error('فشل إرسال الرسالة. يرجى المحاولة مرة أخرى.', {
-                        position: "top-right",
-                        autoClose: 3000,
-                        hideProgressBar: false,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: true,
-                    });
-                }
-            } else {
-                toast.warning('لا يوجد رقم واتساب لولي الأمر.', {
-                    position: "top-right",
-                    autoClose: 3000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                });
-            }
-        }; */
 
     return (
         <AuthenticatedLayout user={auth.user}>
@@ -147,7 +98,7 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
                         <div className="mx-auto px-4 sm:px-6 md:px-14">
                             <Breadcrumb items={breadcrumbItems} />
                             <div className='flex justify-between gap-2 px-4'>
-                                <h1 className={`text-2xl sm:text-3xl  mt-3 font-bold ${isDark ? 'text-TextLight' : 'text-TextDark'}`}>
+                                <h1 className={`text-2xl sm:text-3xl mt-3 font-bold ${isDark ? 'text-TextLight' : 'text-TextDark'}`}>
                                     {`${dayName} (${formattedDate})`}
                                 </h1>
                                 <div className='flex gap-3'>

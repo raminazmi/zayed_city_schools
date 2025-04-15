@@ -8,9 +8,10 @@ import { translations } from '@translations';
 import { router } from '@inertiajs/react';
 import { useDropzone } from 'react-dropzone';
 
-export default function StudentsPage({ auth, classes }) {
+export default function StudentsPage({ auth, classes, pagination }) {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState(null);
+    const [expandedTeachers, setExpandedTeachers] = useState({});
 
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
@@ -24,16 +25,59 @@ export default function StudentsPage({ auth, classes }) {
 
     const columns = [
         { key: 'class_name', label: t['class_name'], sortable: true },
+        { key: 'section', label: t['section'], sortable: true },
         { key: 'students_count', label: t['numbers_of_students'], sortable: true },
-        { key: 'teacher_name', label: t['teacher_name'], sortable: true },
+        {
+            key: 'teacher_name',
+            label: t['teachers'],
+            sortable: true,
+            render: (value, row) => {
+                const isExpanded = expandedTeachers[row.id];
+                const displayText = isExpanded ? row.teacher_name_full : row.teacher_name_short;
+
+                return (
+                    <span
+                        onClick={() => toggleTeacherNames(row.id)}
+                        className="cursor-pointer text-blue-500 hover:underline"
+                    >
+                        {displayText}
+                    </span>
+                );
+            },
+        },
     ];
 
-    const tableData = classes.map(classItem => ({
-        id: classItem.id,
-        class_name: classItem.class_name,
-        students_count: classItem.students_count,
-        teacher_name: classItem.teacher_name,
-    }));
+    const shortenTeacherName = (teacherName) => {
+        const names = teacherName.trim().split(' ');
+        if (names.length < 2) {
+            return teacherName;
+        }
+        const firstName = names[0];
+        const secondName = names[1].substring(0, 4);
+        return `${firstName} ${secondName}..`;
+    };
+
+    const tableData = classes.map(classItem => {
+        const teacherNames = classItem.teacher_name ? classItem.teacher_name.split(',').map(name => name.trim()) : [];
+        const shortenedNames = teacherNames.map(name => shortenTeacherName(name)).join(', ');
+        const fullNames = classItem.teacher_name || '-';
+
+        return {
+            id: classItem.id,
+            section: classItem.section,
+            class_name: classItem.class_name,
+            students_count: classItem.students_count,
+            teacher_name_short: shortenedNames || '-',
+            teacher_name_full: fullNames,
+        };
+    });
+
+    const toggleTeacherNames = (classId) => {
+        setExpandedTeachers(prev => ({
+            ...prev,
+            [classId]: !prev[classId],
+        }));
+    };
 
     const handleView = (row) => {
         router.visit(`/admin/dashboard/students/${row.id}/view`);
@@ -45,7 +89,7 @@ export default function StudentsPage({ auth, classes }) {
             setError(null);
 
             const file = files[0];
-            const formData = new FormData();
+            const formData = new FormFormData();
             formData.append('file', file);
 
             router.post('/admin/dashboard/students/import', formData, {
@@ -136,6 +180,7 @@ export default function StudentsPage({ auth, classes }) {
                                         show: (row) => row,
                                     },
                                 ]}
+                                pagination={pagination}
                             />
                         </div>
                     </div>

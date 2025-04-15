@@ -77,6 +77,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/{id}/save-attendance', [ClassRoomController::class, 'saveAttendance']);
         Route::get('/getClasses', [ClassRoomController::class, 'getClasses'])->name('getClasses');
         Route::post('/import', [ClassRoomController::class, 'import'])->name('import');
+        Route::post('/reassign-teachers', [ClassRoomController::class, 'reassignTeachers'])->name('admin.classes.reassign-teachers');
     });
 
     Route::prefix('dashboard/teachers')->name('teachers.')->group(function () {

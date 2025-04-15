@@ -11,10 +11,10 @@ class TeacherDashboardController extends Controller
 {
     public function index()
     {
-        $teacher = auth()->user();
+        $teacherId = auth()->id();
 
-        $classes = ClassRoom::whereHas('teacher', function ($query) use ($teacher) {
-            $query->where('email', $teacher->email);
+        $classes = ClassRoom::whereHas('teachers', function ($query) use ($teacherId) {
+            $query->where('teachers.id', $teacherId);
         })
             ->withCount('students')
             ->get();
@@ -23,7 +23,6 @@ class TeacherDashboardController extends Controller
             'classes' => $classes,
         ]);
     }
-
 
     public function changePassword()
     {

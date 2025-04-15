@@ -13,7 +13,8 @@ export default function AddTeacherPage({ auth }) {
     const { data, setData, post, errors, processing } = useForm({
         name: '',
         email: '',
-        phone: ''
+        role: '',
+        grades: '',
     });
 
     const handleSubmit = (e) => {
@@ -42,49 +43,66 @@ export default function AddTeacherPage({ auth }) {
                     <div className="py-6">
                         <div className="mx-auto px-4 sm:px-6 md:px-14">
                             <Breadcrumb items={breadcrumbItems} />
-                            <h1 className="text-2xl sm:text-3xl  mt-3 font-bold text-primaryColor">
+                            <h1 className="text-2xl sm:text-3xl mt-3 font-bold text-primaryColor">
                                 {t['add_teacher']}
                             </h1>
                         </div>
                         <div className="mx-auto px-4 sm:px-6 md:px-16 mt-6">
                             <form onSubmit={handleSubmit} className="space-y-6">
-                                <div className='flex justify-between gap-6'>
-                                    <div className='w-full'>
-                                        <InputLabel value={t['teacher_name']} />
-                                        <TextInput
-                                            id="name"
-                                            type="text"
-                                            name="name"
-                                            className={`mt-1 block w-full ${isDark ? 'bg-DarkBG1' : 'bg-TextLight'}`}
-                                            value={data.name}
-                                            onChange={(e) => setData('name', e.target.value)}
-                                        />
-                                        {errors.name && <InputError message={errors.name} className="mt-2" />}
+                                <div className='space-y-4'>
+                                    <div className='flex justify-between gap-6'>
+                                        <div className='w-full'>
+                                            <InputLabel value={t['teacher_name']} />
+                                            <TextInput
+                                                id="name"
+                                                type="text"
+                                                name="name"
+                                                className={`mt-1 block w-full ${isDark ? 'bg-DarkBG1' : 'bg-TextLight'}`}
+                                                value={data.name}
+                                                onChange={(e) => setData('name', e.target.value)}
+                                            />
+                                            {errors.name && <InputError message={errors.name} className="mt-2" />}
+                                        </div>
+                                        <div className='w-full'>
+                                            <InputLabel value={t['email']} />
+                                            <TextInput
+                                                id="email"
+                                                type="email"
+                                                name="email"
+                                                className={`mt-1 block w-full ${isDark ? 'bg-DarkBG1' : 'bg-TextLight'}`}
+                                                value={data.email}
+                                                onChange={(e) => setData('email', e.target.value)}
+                                            />
+                                            {errors.email && <InputError message={errors.email} className="mt-2" />}
+                                        </div>
                                     </div>
-                                    <div className='w-full'>
-                                        <InputLabel value={t['email']} />
-                                        <TextInput
-                                            id="email"
-                                            type="email"
-                                            name="email"
-                                            className={`mt-1 block w-full ${isDark ? 'bg-DarkBG1' : 'bg-TextLight'}`}
-                                            value={data.email}
-                                            onChange={(e) => setData('email', e.target.value)}
-                                        />
-                                        {errors.email && <InputError message={errors.email} className="mt-2" />}
+                                    <div className='flex justify-between gap-6'>
+                                        <div className='w-full'>
+                                            <InputLabel value={t['position']} />
+                                            <TextInput
+                                                id="role"
+                                                type="text"
+                                                name="role"
+                                                className={`mt-1 block w-full ${isDark ? 'bg-DarkBG1' : 'bg-TextLight'}`}
+                                                value={data.role}
+                                                onChange={(e) => setData('role', e.target.value)}
+                                            />
+                                            {errors.role && <InputError message={errors.role} className="mt-2" />}
+                                        </div>
+                                        <div className='w-full'>
+                                            <InputLabel value={t['classes']} />
+                                            <TextInput
+                                                id="grades"
+                                                type="text"
+                                                name="grades"
+                                                placeholder="G5:G6"
+                                                className={`mt-1 block w-full ${isDark ? 'bg-DarkBG1' : 'bg-TextLight'}`}
+                                                value={data.grades}
+                                                onChange={(e) => setData('grades', e.target.value)}
+                                            />
+                                            {errors.grades && <InputError message={errors.grades} className="mt-2" />}
+                                        </div>
                                     </div>
-                                </div>
-                                <div>
-                                    <InputLabel value={t['phone']} />
-                                    <TextInput
-                                        id="phone"
-                                        type="tel"
-                                        name="phone"
-                                        className={`mt-1 block w-full ${isDark ? 'bg-DarkBG1' : 'bg-TextLight'}`}
-                                        value={data.phone}
-                                        onChange={(e) => setData('phone', e.target.value)}
-                                    />
-                                    {errors.phone && <InputError message={errors.phone} className="mt-2" />}
                                 </div>
                                 <div className="flex justify-end">
                                     <PrimaryButton type="submit" disabled={processing}>

@@ -15,6 +15,7 @@ import { useDropzone } from 'react-dropzone';
 export default function TeachersPage({ auth, teachers }) {
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
+    const [uploading, setUploading] = useState(false);
     const t = translations[language];
     const breadcrumbItems = [
         { label: t['teachers_management'], href: '/admin/dashboard/teachers' },
@@ -23,14 +24,16 @@ export default function TeachersPage({ auth, teachers }) {
     const columns = [
         { key: 'teacher_name', label: t['teacher_name'], sortable: true },
         { key: 'email', label: t['email'], sortable: true },
-        { key: 'phone', label: t['phone'], sortable: true },
+        { key: 'position', label: t['position'], sortable: true },
+        { key: 'classes', label: t['classes'], sortable: true },
     ];
 
     const tableData = teachers.data.map(item => ({
         id: item.id,
         teacher_name: item.name,
         email: item.email,
-        phone: item.phone,
+        position: item.role,
+        classes: item.grades,
     }));
 
     const handleEdit = (row) => {
@@ -65,13 +68,22 @@ export default function TeachersPage({ auth, teachers }) {
 
     const { getRootProps, getInputProps } = useDropzone({
         accept: '.xlsx, .xls',
+        disabled: uploading,
         onDrop: (acceptedFiles) => {
+            setUploading(true);
             const file = acceptedFiles[0];
             const formData = new FormData();
             formData.append('file', file);
             router.post('/admin/dashboard/teachers/import', formData, {
                 onSuccess: () => {
+                    setUploading(false);
                     window.location.reload();
+                },
+                onError: (errors) => {
+                    setUploading(false);
+                },
+                onFinish: () => {
+                    setUploading(false);
                 }
             });
         }
@@ -93,7 +105,7 @@ export default function TeachersPage({ auth, teachers }) {
                                     <PrimaryButton children={t['add_teacher']} link="/admin/dashboard/teachers/add-new-teacher" />
                                     <div {...getRootProps()} className="cursor-pointer">
                                         <input {...getInputProps()} />
-                                        <PrimaryButton children={t['import_teachers']} />
+                                        <PrimaryButton children={uploading ? 'جاري الرفع...' : t['import_teachers']} disabled={uploading} />
                                     </div>
                                 </div>
                             </div>

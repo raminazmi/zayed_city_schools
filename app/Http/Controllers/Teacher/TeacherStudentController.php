@@ -14,19 +14,31 @@ class TeacherStudentController extends Controller
     public function index()
     {
         $teacherEmail = Auth::user()->email;
-
-        $classes = ClassRoom::with(['teacher', 'students'])
-            ->whereHas('teacher', function ($query) use ($teacherEmail) {
+        $classes = ClassRoom::with('teachers:id,name')
+            ->whereHas('teachers', function ($query) use ($teacherEmail) {
                 $query->where('email', $teacherEmail);
             })
-            ->select('id', 'name', 'section', 'teacher_id', 'created_at')
+            ->withCount('students')
+            ->whereNull('deleted_at')
+            ->select(
+                'id',
+                'name',
+                'section',
+                'created_at',
+                'class_description',
+                'section_number',
+                'path'
+            )
+            ->orderByRaw('CAST(class_description AS UNSIGNED) ASC')
+            ->orderByRaw("CASE WHEN path = 'Adv-3rdLanguage' THEN 0 ELSE 1 END")
+            ->orderBy('section_number', 'asc')
             ->paginate(9999999999999);
 
         $classesData = $classes->map(function ($class) {
             return [
                 'id' => $class->id,
                 'class_name' => $class->name,
-                'teacher_name' => $class->teacher ? $class->teacher->name : '-',
+                'teacher_name' => $class->teachers->pluck('name')->join(', ') ?: '-',
                 'section' => $class->section,
                 'students_count' => $class->students->count(),
             ];
@@ -58,8 +70,8 @@ class TeacherStudentController extends Controller
     {
         $teacherEmail = Auth::user()->email;
 
-        $classes = ClassRoom::with(['teacher', 'students'])
-            ->whereHas('teacher', function ($query) use ($teacherEmail) {
+        $classes = ClassRoom::with(['teachers', 'students'])
+            ->whereHas('teachers', function ($query) use ($teacherEmail) {
                 $query->where('email', $teacherEmail);
             })
             ->select('id', 'name')
@@ -117,8 +129,8 @@ class TeacherStudentController extends Controller
         $student = Student::select('id', 'name', 'student_number', 'class_id', 'parent_whatsapp', 'class_description', 'section_number', 'path')
             ->findOrFail($id);
 
-        $classes = ClassRoom::with(['teacher', 'students'])
-            ->whereHas('teacher', function ($query) use ($teacherEmail) {
+        $classes = ClassRoom::with(['teachers', 'students'])
+            ->whereHas('teachers', function ($query) use ($teacherEmail) {
                 $query->where('email', $teacherEmail);
             })
             ->select('id', 'name')

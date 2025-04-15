@@ -33,9 +33,10 @@ export default function EditStudentPage({ auth, student, classes }) {
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
     const t = translations[language];
+    const classroom = classes.find(cls => cls.id == student.class_id);
     const breadcrumbItems = [
         { label: t['student_management'], href: '/admin/dashboard/students' },
-        { label: t['edit_student'] }
+        { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
     return (

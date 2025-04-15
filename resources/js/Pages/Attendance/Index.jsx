@@ -31,7 +31,6 @@ export default function AttendancePage({ auth, classes }) {
     const columns = [
         { key: 'class_name', label: t['class_name'], sortable: true },
         { key: 'students_count', label: t['numbers_of_students'], sortable: true },
-        { key: 'teacher_name', label: t['teacher_name'], sortable: true },
         { key: 'section', label: t['section'], sortable: true },
     ];
 
@@ -39,7 +38,6 @@ export default function AttendancePage({ auth, classes }) {
         id: classItem.id,
         class_name: classItem.class_name,
         students_count: classItem.students_count,
-        teacher_name: classItem.teacher_name,
         section: classItem.section,
     }));
 

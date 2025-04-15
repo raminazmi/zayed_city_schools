@@ -12,11 +12,14 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('section');
-            $table->foreignId('teacher_id')->constrained('teachers')->onDelete('cascade');
+            $table->string('class_description')->nullable();
+            $table->string('section_number')->nullable();
+            $table->string('path')->nullable();
+            $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade'); // Required field
             $table->timestamps();
             $table->softDeletes();
             $table->unique(['name', 'section']);
-            $table->index('teacher_id');
+            $table->index('grade_id');
         });
     }
 

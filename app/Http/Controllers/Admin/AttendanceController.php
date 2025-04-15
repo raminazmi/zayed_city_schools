@@ -35,33 +35,44 @@ class AttendanceController extends Controller
 
     public function index()
     {
-        $attendances = Attendance::with(['student', 'class'])
-            ->latest()
-            ->paginate(9999999999999);
-
-        $classes = ClassRoom::with(['teacher', 'students'])
-            ->select('id', 'name', 'section', 'teacher_id', 'created_at')
-            ->latest()
+        $classes = ClassRoom::with('teachers:id,name')
+            ->withCount('students')
+            ->whereNull('deleted_at')
+            ->select(
+                'id',
+                'name',
+                'section',
+                'created_at',
+                'class_description',
+                'section_number',
+                'path'
+            )
+            ->orderByRaw('CAST(class_description AS UNSIGNED) ASC')
+            ->orderByRaw("CASE WHEN path = 'Adv-3rdLanguage' THEN 0 ELSE 1 END")
+            ->orderBy('section_number', 'asc')
             ->paginate(9999999999999);
 
         $classesData = $classes->map(function ($class) {
             return [
                 'id' => $class->id,
                 'class_name' => $class->name,
-                'teacher_name' => $class->teacher ? $class->teacher->name : 'N/A',
                 'section' => $class->section,
+                'created_at' => $class->created_at,
+                'class_description' => $class->class_description,
+                'section_number' => $class->section_number,
+                'path' => $class->path,
                 'students_count' => $class->students->count(),
+                'teachers' => $class->teachers->map(function ($teacher) {
+                    return ['id' => $teacher->id, 'name' => $teacher->name];
+                })->toArray(),
+                'teacher_name' => $class->teachers->pluck('name')->join(', ') ?: '-',
             ];
         });
 
-
         return Inertia::render('Attendance/Index', [
-            'attendances' => $attendances,
             'classes' => $classesData,
         ]);
     }
-
-
 
     public function viewAttendance($id, Request $request)
     {

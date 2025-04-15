@@ -17,10 +17,11 @@ use App\Imports\TeachersImport;
 
 class TeacherController extends Controller
 {
+
     public function index()
     {
-        $teachers = Teacher::select('id', 'name', 'email', 'phone', 'created_at')
-            ->latest()
+        $teacher = auth()->user()->teacher;
+        $teachers = Teacher::with(['user', 'classes'])
             ->paginate(9999999999999);
         $auth = Auth::user();
 
@@ -29,7 +30,6 @@ class TeacherController extends Controller
             'auth' => $auth,
         ]);
     }
-
     public function create()
     {
         return Inertia::render('Teachers/Create');
@@ -41,15 +41,16 @@ class TeacherController extends Controller
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'string', 'email', 'max:255', 'unique:teachers', 'unique:users'],
-                'phone' => ['required', 'string', 'max:15'],
+                'role' => ['nullable', 'string', 'max:255'],
+                'grades' => ['nullable', 'string', 'max:255'],
             ], [
                 'name.required' => 'حقل الاسم مطلوب',
                 'name.max' => 'يجب ألا يتجاوز الاسم 255 حرفًا',
                 'email.required' => 'حقل البريد الإلكتروني مطلوب',
                 'email.email' => 'يجب أن يكون البريد الإلكتروني صالحًا',
                 'email.unique' => 'البريد الإلكتروني مستخدم بالفعل',
-                'phone.required' => 'حقل كلمة المرور مطلوب',
-                'phone.max' => 'يجب ألا يتجاوز رقم الهاتف 15 رقمًا'
+                'role.max' => 'يجب ألا يتجاوز الدور 255 حرفًا',
+                'grades.max' => 'يجب ألا تتجاوز الصفوف 255 حرفًا',
             ]);
 
             $teacher = Teacher::create($validated);
@@ -70,7 +71,7 @@ class TeacherController extends Controller
 
     public function edit($id)
     {
-        $teacher = Teacher::select('id', 'name', 'email', 'phone')
+        $teacher = Teacher::select('id', 'name', 'email', 'role', 'grades')
             ->findOrFail($id);
 
         return Inertia::render('Teachers/Edit', [
@@ -84,15 +85,16 @@ class TeacherController extends Controller
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'string', 'email', 'max:255', 'unique:teachers,email,' . $id],
-                'phone' => ['required', 'string', 'max:15'],
+                'role' => ['nullable', 'string', 'max:255'],
+                'grades' => ['nullable', 'string', 'max:255'],
             ], [
                 'name.required' => 'حقل الاسم مطلوب',
                 'name.max' => 'يجب ألا يتجاوز الاسم 255 حرفًا',
                 'email.required' => 'حقل البريد الإلكتروني مطلوب',
                 'email.email' => 'يجب أن يكون البريد الإلكتروني صالحًا',
                 'email.unique' => 'البريد الإلكتروني مستخدم بالفعل',
-                'phone.required' => 'حقل كلمة المرور مطلوب',
-                'phone.max' => 'يجب ألا يتجاوز رقم الهاتف 15 رقمًا'
+                'role.max' => 'يجب ألا يتجاوز الدور 255 حرفًا',
+                'grades.max' => 'يجب ألا تتجاوز الصفوف 255 حرفًا',
             ]);
 
             $teacher = Teacher::findOrFail($id);

@@ -33,9 +33,10 @@ export default function AddStudentPage({ auth, classes, classId }) {
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
     const t = translations[language];
+    const classroom = classes.find(cls => cls.id == classId);
     const breadcrumbItems = [
         { label: t['student_management'], href: '/admin/dashboard/students' },
-        { label: t['add_student'] }
+        { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
     return (
