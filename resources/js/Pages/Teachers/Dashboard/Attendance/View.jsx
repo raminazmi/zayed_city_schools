@@ -18,6 +18,7 @@ export default function TeacherAttendanceViewPage({ auth, classroom, attendance,
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
     const t = translations[language];
+    const [sendingStatus, setSendingStatus] = React.useState({});
 
     const dayNames = {
         Sunday: t["Sunday"],
@@ -79,63 +80,54 @@ export default function TeacherAttendanceViewPage({ auth, classroom, attendance,
         { label: classroom.name },
     ];
 
-    const generateWhatsAppLink = (row) => {
-        const statusText = React.Children.toArray(row.status.props.children).join(' ');
-        if (row.parent_whatsapp) {
-            const message = getStatusMessage(statusText, row.student_name, formattedDate, row.notes); // استخدم statusText بدلاً من row.status
-            return `https://api.whatsapp.com/send?phone=${row.parent_whatsapp}&text=${encodeURIComponent(message)}`;
+    const sendNotification = async (row) => {
+        if (!row.parent_whatsapp) {
+            toast.error('لا يوجد رقم هاتف مسجل لولي الأمر');
+            return;
         }
-        return '#';
+
+        let phone = row.parent_whatsapp.trim();
+
+        if (phone.startsWith('0')) {
+            phone = '971' + phone.substring(1);
+        } else if (!phone.startsWith('+') && !phone.startsWith('00') && !phone.startsWith('971')) {
+            if (/^(5|59)/.test(phone)) {
+                phone = `971${phone}`;
+            }
+        }
+
+        const statusText = React.Children.toArray(row.status.props.children).join(' ');
+        const message = getStatusMessage(statusText, row.student_name, formattedDate, row.notes);
+
+        try {
+            setSendingStatus(prev => ({ ...prev, [row.id]: true }));
+
+            const response = await axios.post('/teacher/dashboard/attendance/send-whatsapp-notification', {
+                phone: phone,
+                message: message
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                },
+                timeout: 10000
+            });
+
+            if (response.data.status) {
+                toast.success('تم إرسال التنبيه بنجاح');
+            } else {
+                throw new Error(response.data.message || 'فشل في إرسال التنبيه');
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.message ||
+                error.message ||
+                'حدث خطأ غير متوقع أثناء الإرسال';
+            toast.error(`حدث خطأ أثناء إرسال التنبيه: ${errorMsg}`);
+            console.error('Error details:', error);
+        } finally {
+            setSendingStatus(prev => ({ ...prev, [row.id]: false }));
+        }
     };
-
-    // const sendWhatsAppMessage = async (row) => {
-    //     const statusText = React.Children.toArray(row.status.props.children).join(' ');
-    //     const message = getStatusMessage(statusText, row.student_name, formattedDate, row.notes);
-
-    //     if (row.parent_whatsapp) {
-    //         try {
-    //             const response = await axios.post('/teacher/send-whatsapp', {
-    //                 to: row.parent_whatsapp,
-    //                 message,
-    //             }, {
-    //                 headers: {
-    //                     'Content-Type': 'application/json',
-    //                 },
-    //             });
-
-    //             if (response.data.success) {
-    //                 toast.success('تم إرسال الرسالة بنجاح!', {
-    //                     position: "top-right",
-    //                     autoClose: 3000,
-    //                     hideProgressBar: false,
-    //                     closeOnClick: true,
-    //                     pauseOnHover: true,
-    //                     draggable: true,
-    //                 });
-    //             } else {
-    //                 throw new Error(response.data.message);
-    //             }
-    //         } catch (error) {
-    //             toast.error('فشل إرسال الرسالة. يرجى المحاولة مرة أخرى.', {
-    //                 position: "top-right",
-    //                 autoClose: 3000,
-    //                 hideProgressBar: false,
-    //                 closeOnClick: true,
-    //                 pauseOnHover: true,
-    //                 draggable: true,
-    //             });
-    //         }
-    //     } else {
-    //         toast.warning('لا يوجد رقم واتساب لولي الأمر.', {
-    //             position: "top-right",
-    //             autoClose: 3000,
-    //             hideProgressBar: false,
-    //             closeOnClick: true,
-    //             pauseOnHover: true,
-    //             draggable: true,
-    //         });
-    //     }
-    // };
 
     return (
         <AuthenticatedLayout user={auth.user}>
@@ -147,7 +139,7 @@ export default function TeacherAttendanceViewPage({ auth, classroom, attendance,
                         <div className="mx-auto px-4 sm:px-6 md:px-14">
                             <Breadcrumb items={breadcrumbItems} />
                             <div className='flex justify-between gap-2 px-4'>
-                                <h1 className="text-2xl sm:text-3xl  mt-3 font-bold text-primaryColor">
+                                <h1 className="text-2xl sm:text-3xl mt-3 font-bold text-primaryColor">
                                     {`${dayName} (${formattedDate})`}
                                 </h1>
                                 <div className='flex gap-3'>
@@ -176,15 +168,13 @@ export default function TeacherAttendanceViewPage({ auth, classroom, attendance,
                                 actions={false}
                                 buttons={[{
                                     label: t['send_whatsapp'],
-                                    onClick: (row) => {
-                                        const url = generateWhatsAppLink(row);
-                                        window.open(url, '_blank');
-                                    },
+                                    onClick: (row) => sendNotification(row),
                                     icon: <MessageCircleReply className="w-4 h-4 mx-1" />,
                                     bgColor: 'bg-green-500',
                                     hoverColor: 'bg-green-500',
                                     ringColor: 'ring-green-500',
                                     show: (row) => ![t.attendance_not_taken, t.present].includes(row.status.props.children),
+                                    loading: (row) => sendingStatus[row.id],
                                 }]}
                             />
                         </div>

@@ -18,6 +18,7 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
     const t = translations[language];
+    const [sendingStatus, setSendingStatus] = React.useState({});
 
     const dayNames = {
         Sunday: t["Sunday"],
@@ -79,13 +80,53 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
         { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
-    const generateWhatsAppLink = (row) => {
-        const statusText = React.Children.toArray(row.status.props.children).join(' ');
-        if (row.parent_whatsapp) {
-            const message = getStatusMessage(statusText, row.student_name, formattedDate, row.notes);
-            return `https://api.whatsapp.com/send?phone=${row.parent_whatsapp}&text=${encodeURIComponent(message)}`;
+    const sendNotification = async (row) => {
+        if (!row.parent_whatsapp) {
+            toast.error('لا يوجد رقم هاتف مسجل لولي الأمر');
+            return;
         }
-        return '#';
+
+        let phone = row.parent_whatsapp.trim();
+
+        if (phone.startsWith('0')) {
+            phone = '971' + phone.substring(1);
+        } else if (!phone.startsWith('+') && !phone.startsWith('00') && !phone.startsWith('971')) {
+            if (/^(5|59)/.test(phone)) {
+                phone = `971${phone}`;
+            }
+        }
+
+        const statusText = React.Children.toArray(row.status.props.children).join(' ');
+        const message = getStatusMessage(statusText, row.student_name, formattedDate, row.notes);
+
+        try {
+            setSendingStatus(prev => ({ ...prev, [row.id]: true }));
+
+            const response = await axios.post('/admin/dashboard/attendance/send-whatsapp-notification', {
+                phone: phone,
+                message: message
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                },
+                timeout: 10000
+            });
+
+            if (response.data.status) {
+                toast.success('تم إرسال التنبيه بنجاح');
+            } else {
+                throw new Error(response.data.message || 'فشل في إرسال التنبيه');
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.message ||
+                error.message ||
+                'حدث خطأ غير متوقع أثناء الإرسال';
+            toast.error(`حدث خطأ أثناء إرسال التنبيه: ${errorMsg}`);
+            console.error('Error details:', error);
+        } finally {
+            setSendingStatus(prev => ({ ...prev, [row.id]: false }));
+        }
     };
 
     return (
@@ -127,15 +168,13 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
                                 actions={false}
                                 buttons={[{
                                     label: t['send_whatsapp'],
-                                    onClick: (row) => {
-                                        const url = generateWhatsAppLink(row);
-                                        window.open(url, '_blank');
-                                    },
+                                    onClick: (row) => sendNotification(row),
                                     icon: <MessageCircleReply className="w-4 h-4 mx-1" />,
                                     bgColor: 'bg-green-500',
                                     hoverColor: 'bg-green-500',
                                     ringColor: 'ring-green-500',
                                     show: (row) => ![t.attendance_not_taken, t.present].includes(row.status.props.children),
+                                    loading: (row) => sendingStatus[row.id],
                                 }]}
                             />
                         </div>

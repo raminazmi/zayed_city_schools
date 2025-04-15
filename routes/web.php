@@ -63,6 +63,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/{id}/attendance', [AttendanceController::class, 'saveAttendance'])->name('saveAttendance');
         Route::post('/{id}/save-attendance', [AttendanceController::class, 'saveAttendance']);
         Route::get('/{id}/view', [AttendanceController::class, 'viewAttendance'])->name('view');
+        Route::post('/send-whatsapp-notification', [AttendanceController::class, 'sendNotification']);
     });
 
     Route::prefix('dashboard/classes')->name('classes.')->group(function () {
@@ -134,6 +135,7 @@ Route::middleware(['auth', 'teacher'])->prefix('teacher')->name('teacher.')->gro
         Route::post('/{id}/attendance', [TeacherAttendanceController::class, 'saveAttendance'])->name('saveAttendance');
         Route::post('/{id}/save-attendance', [TeacherAttendanceController::class, 'saveAttendance']);
         Route::get('/{id}/view', [TeacherAttendanceController::class, 'viewAttendance'])->name('view');
+        Route::post('/send-whatsapp-notification', [TeacherAttendanceController::class, 'sendNotification']);
     });
 
     Route::prefix('dashboard/students')->name('students.')->group(function () {

@@ -13,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\AttendanceExport;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class AttendanceController extends Controller
 {
@@ -452,5 +453,96 @@ class AttendanceController extends Controller
             \Log::error('Error saving attendance: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to save attendance: ' . $e->getMessage()], 500);
         }
+    }
+
+    public function sendNotification(Request $request)
+    {
+        \Log::info('WhatsApp Notification Request:', $request->all());
+
+        $validator = Validator::make($request->all(), [
+            'phone' => ['required', 'string', 'regex:/^(\+?971|0)?(5|59)\d{7,8}$/'],
+            'message' => 'required|string|max:1000',
+        ], [
+            'phone.regex' => 'يجب أن يبدأ رقم الهاتف بـ 971 أو 0 أو +971 متبوعاً بـ 5 أو 59'
+        ]);
+
+        if ($validator->fails()) {
+            \Log::error('Validation failed:', $validator->errors()->toArray());
+            return response()->json([
+                'status' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            if (!env('ULTRAMSG_TOKEN')) {
+                throw new \Exception('UltraMSG token not configured');
+            }
+
+            $client = new \GuzzleHttp\Client([
+                'timeout' => 10,
+                'verify' => false
+            ]);
+
+            $response = $client->post('https://api.ultramsg.com/' . env('ULTRAMSG_INSTANCE_ID', 'instance60138') . '/messages/chat', [
+                'form_params' => [
+                    'token' => env('ULTRAMSG_TOKEN'),
+                    'to' => $this->formatPhoneNumber($request->phone),
+                    'body' => $request->message,
+                ],
+                'headers' => [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                    'Accept' => 'application/json'
+                ],
+            ]);
+
+            $result = json_decode($response->getBody(), true);
+            \Log::info('UltraMSG API Response:', $result);
+
+            if (!isset($result['sent']) || $result['sent'] !== 'true') {
+                throw new \Exception($result['error'] ?? 'Unknown error from UltraMSG API');
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم إرسال التنبيه بنجاح'
+            ]);
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            \Log::error('HTTP Request Exception:', [
+                'message' => $e->getMessage(),
+                'response' => $e->hasResponse() ? $e->getResponse()->getBody()->getContents() : null
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'فشل الاتصال بخدمة الرسائل: ' . $e->getMessage()
+            ], 500);
+        } catch (\Exception $e) {
+            \Log::error('General Exception:', ['message' => $e->getMessage()]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'حدث خطأ غير متوقع: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    private function formatPhoneNumber($phone)
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        if (strpos($phone, '00') === 0) {
+            $phone = substr($phone, 2);
+        } elseif (strpos($phone, '+') === 0) {
+            $phone = substr($phone, 1);
+        }
+
+        if (strpos($phone, '971') === 0) {
+            return $phone;
+        }
+        if (preg_match('/^(5|59)/', $phone)) {
+            return '971' . $phone;
+        }
+        return $phone;
     }
 }
