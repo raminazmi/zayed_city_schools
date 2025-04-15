@@ -26,7 +26,7 @@ Route::get('/', function () {
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
-});
+})->name('root');
 
 Route::get('/unauthorized', [ErrorController::class, 'unauthorized'])->name('unauthorized');
 
