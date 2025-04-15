@@ -106,7 +106,7 @@ export default function StudentsPage({ auth, classes, pagination }) {
                                 <div className="relative">
                                     <div
                                         {...getRootProps()}
-                                        className={`cursor-pointer border-2 border-dashed rounded-md p-4 text-center
+                                        className={`cursor-pointer rounded-md text-center
                                             ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}
                                             ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                                         `}
@@ -121,9 +121,6 @@ export default function StudentsPage({ auth, classes, pagination }) {
                                         >
                                             {uploading ? 'جاري الرفع...' : t['import_students']}
                                         </button>
-                                        <p className="mt-2 text-sm text-gray-600">
-                                            {isDragActive ? 'أفلت الملف هنا' : 'اسحب وأفلت ملف Excel هنا أو انقر للاختيار'}
-                                        </p>
                                         {error && (
                                             <p className="mt-2 text-sm text-red-600">
                                                 {error}
