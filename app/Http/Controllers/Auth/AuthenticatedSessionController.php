@@ -44,7 +44,7 @@ class AuthenticatedSessionController extends Controller
             return redirect()->intended('/teacher/dashboard/home');
         }
 
-        return to_route('root');
+        return redirect('/');
     }
 
 
@@ -55,6 +55,6 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return to_route('root');
+        return redirect('/');
     }
 }
