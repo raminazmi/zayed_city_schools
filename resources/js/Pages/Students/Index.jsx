@@ -11,7 +11,6 @@ import { useDropzone } from 'react-dropzone';
 export default function StudentsPage({ auth, classes, pagination }) {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState(null);
-    const [expandedTeachers, setExpandedTeachers] = useState({});
 
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
@@ -31,85 +30,52 @@ export default function StudentsPage({ auth, classes, pagination }) {
             key: 'teacher_name',
             label: t['teachers'],
             sortable: true,
-            render: (value, row) => {
-                const isExpanded = expandedTeachers[row.id];
-                const displayText = isExpanded ? row.teacher_name_full : row.teacher_name_short;
-
-                return (
-                    <span
-                        onClick={() => toggleTeacherNames(row.id)}
-                        className="cursor-pointer text-blue-500 hover:underline"
-                    >
-                        {displayText}
-                    </span>
-                );
-            },
+            render: (value) => value || '-'
         },
     ];
 
-    const shortenTeacherName = (teacherName) => {
-        const names = teacherName.trim().split(' ');
-        if (names.length < 2) {
-            return teacherName;
-        }
-        const firstName = names[0];
-        const secondName = names[1].substring(0, 4);
-        return `${firstName} ${secondName}..`;
-    };
-
-    const tableData = classes.map(classItem => {
-        const teacherNames = classItem.teacher_name ? classItem.teacher_name.split(',').map(name => name.trim()) : [];
-        const shortenedNames = teacherNames.map(name => shortenTeacherName(name)).join(', ');
-        const fullNames = classItem.teacher_name || '-';
-
-        return {
-            id: classItem.id,
-            section: classItem.section,
-            class_name: classItem.class_name,
-            students_count: classItem.students_count,
-            teacher_name_short: shortenedNames || '-',
-            teacher_name_full: fullNames,
-        };
-    });
-
-    const toggleTeacherNames = (classId) => {
-        setExpandedTeachers(prev => ({
-            ...prev,
-            [classId]: !prev[classId],
-        }));
-    };
+    const tableData = classes.map(classItem => ({
+        id: classItem.id,
+        section: classItem.section,
+        class_name: classItem.class_name,
+        students_count: classItem.students_count,
+        teacher_name: classItem.teacher_name || '-',
+    }));
 
     const handleView = (row) => {
         router.visit(`/admin/dashboard/students/${row.id}/view`);
     };
 
     const handleFileUpload = async (files) => {
+        if (uploading) return;
+
         try {
             setUploading(true);
             setError(null);
 
             const file = files[0];
-            const formData = new FormFormData();
+            if (!file) {
+                setError('الرجاء اختيار ملف صالح');
+                return;
+            }
+
+            const formData = new FormData();
             formData.append('file', file);
 
-            router.post('/admin/dashboard/students/import', formData, {
+            await router.post('/admin/dashboard/students/import', formData, {
                 forceFormData: true,
                 onSuccess: () => {
-                    setUploading(false);
                     window.location.reload();
                 },
                 onError: (errors) => {
-                    setUploading(false);
-                    setError(errors.file || 'حدث خطأ أثناء رفع الملف');
-                },
-                onFinish: () => {
-                    setUploading(false);
+                    setError(errors.file || errors.message || 'حدث خطأ أثناء رفع الملف');
                 }
             });
         } catch (error) {
+            setError('حدث خطأ غير متوقع: ' + error.message);
+            console.error('Upload error:', error);
+        } finally {
             setUploading(false);
-            setError('حدث خطأ غير متوقع');
-            console.error('خطأ:', error);
         }
     };
 
@@ -120,7 +86,9 @@ export default function StudentsPage({ auth, classes, pagination }) {
         },
         onDrop: handleFileUpload,
         multiple: false,
-        disabled: uploading
+        disabled: uploading,
+        maxFiles: 1,
+        maxSize: 5 * 1024 * 1024 // 5MB
     });
 
     return (
@@ -132,13 +100,13 @@ export default function StudentsPage({ auth, classes, pagination }) {
                         <div className="mx-auto px-4 sm:px-6 md:px-14">
                             <Breadcrumb items={breadcrumbItems} />
                             <div className='flex justify-between items-center'>
-                                <h1 className="text-2xl sm:text-3xl  mt-3 font-bold text-primaryColor">
+                                <h1 className="text-2xl sm:text-3xl mt-3 font-bold text-primaryColor">
                                     {t['classes']}
                                 </h1>
                                 <div className="relative">
                                     <div
                                         {...getRootProps()}
-                                        className={`cursor-pointer
+                                        className={`cursor-pointer border-2 border-dashed rounded-md p-4 text-center
                                             ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}
                                             ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                                         `}
@@ -153,6 +121,9 @@ export default function StudentsPage({ auth, classes, pagination }) {
                                         >
                                             {uploading ? 'جاري الرفع...' : t['import_students']}
                                         </button>
+                                        <p className="mt-2 text-sm text-gray-600">
+                                            {isDragActive ? 'أفلت الملف هنا' : 'اسحب وأفلت ملف Excel هنا أو انقر للاختيار'}
+                                        </p>
                                         {error && (
                                             <p className="mt-2 text-sm text-red-600">
                                                 {error}
@@ -175,9 +146,9 @@ export default function StudentsPage({ auth, classes, pagination }) {
                                         label: t['veiw'],
                                         onClick: handleView,
                                         bgColor: 'bg-blue-500',
-                                        hoverColor: 'hover:bg-green-600',
+                                        hoverColor: 'hover:bg-blue-600',
                                         ringColor: 'ring-blue-500',
-                                        show: (row) => row,
+                                        show: (row) => !!row,
                                     },
                                 ]}
                                 pagination={pagination}
