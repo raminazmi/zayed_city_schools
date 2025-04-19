@@ -55,14 +55,6 @@ export default function TeacherAttendanceViewPage({ auth, classroom, attendance,
         }
     };
 
-    const handleDateSubmit = () => {
-        router.visit(`/teacher/dashboard/attendance/${classroom.id}/attendance?date=${formattedDate}`);
-    };
-
-    const handleExportSubmit = () => {
-        window.location.href = `/teacher/dashboard/attendance/${classroom.id}/export?date=${formattedDate}`;
-    };
-
     const tableData = attendance.map(record => ({
         id: record.student_id,
         student_name: record.student_name || t.unknown_student,
@@ -74,6 +66,18 @@ export default function TeacherAttendanceViewPage({ auth, classroom, attendance,
         notes: record.notes || '-',
         parent_whatsapp: record.parent_whatsapp || '',
     }));
+
+    const sortedTableData = [...tableData].sort((a, b) =>
+        a.student_name.localeCompare(b.student_name, 'ar')
+    );
+
+    const handleDateSubmit = () => {
+        router.visit(`/teacher/dashboard/attendance/${classroom.id}/attendance?date=${formattedDate}`);
+    };
+
+    const handleExportSubmit = () => {
+        window.location.href = `/teacher/dashboard/attendance/${classroom.id}/export?date=${formattedDate}`;
+    };
 
     const breadcrumbItems = [
         { label: t.attendance, href: '/teacher/dashboard/attendance' },
@@ -161,7 +165,7 @@ export default function TeacherAttendanceViewPage({ auth, classroom, attendance,
                         <div className="mx-auto px-4 sm:px-6 md:px-14 mt-6">
                             <DataTable
                                 columns={columns}
-                                data={tableData}
+                                data={sortedTableData}
                                 searchable={false}
                                 filterable={false}
                                 selectable={false}

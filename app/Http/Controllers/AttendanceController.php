@@ -53,14 +53,11 @@ class AttendanceController extends Controller
             ];
         });
 
-
         return Inertia::render('Attendance/Index', [
             'attendances' => $attendances,
             'classes' => $classesData,
         ]);
     }
-
-
 
     public function viewAttendance($id, Request $request)
     {
@@ -91,13 +88,17 @@ class AttendanceController extends Controller
                 'student_name' => $student->name,
                 'parent_whatsapp' => $student->parent_whatsapp,
                 'status' => $attendanceRecord ? $attendanceRecord->status : 'not_taken',
-                'notes' => $attendanceRecord ? $attendanceRecord->notes : '-',
+                'notes' => $attendanceRecord && $attendanceRecord->status === 'late' ? $attendanceRecord->notes : null,
             ];
         });
 
         if ($request->wantsJson()) {
             $attendances = $attendanceData->mapWithKeys(function ($item) {
-                return [$item['student_id'] => $item['status']];
+                return [
+                    $item['student_id'] => $item['status'] === 'late'
+                        ? ['status' => $item['status'], 'lateTime' => $item['notes']]
+                        : $item['status']
+                ];
             });
 
             return response()->json(['attendance' => $attendances]);
@@ -109,8 +110,6 @@ class AttendanceController extends Controller
             'date' => $date,
         ]);
     }
-
-
 
     public function create()
     {
@@ -177,7 +176,6 @@ class AttendanceController extends Controller
 
         return response()->json($this->formatAttendanceStats($attendanceData, $period));
     }
-
 
     public function getAttendanceStatistics()
     {
@@ -337,7 +335,6 @@ class AttendanceController extends Controller
         return Excel::download(new AttendanceExport($attendances), 'attendance_report.xlsx');
     }
 
-
     public function exportALL(Request $request)
     {
         $class_id = $request->input('class_id');
@@ -374,7 +371,6 @@ class AttendanceController extends Controller
 
         return response()->json(['hasNullAttendance' => $hasNullAttendance]);
     }
-
 
     public function attendance($id, Request $request)
     {
@@ -416,12 +412,6 @@ class AttendanceController extends Controller
                     if (!in_array($status, $validStatuses)) {
                         throw new \Exception('Invalid status value for student ID: ' . $studentId);
                     }
-
-                    \Log::info('Processing student ID:', [
-                        'id' => $studentId,
-                        'status' => $status,
-                        'lateTime' => $lateTime
-                    ]);
 
                     Attendance::updateOrCreate(
                         [

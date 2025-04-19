@@ -125,8 +125,8 @@ export default function ClassesPage({ auth, classes }) {
                                 columns={columns}
                                 data={tableData}
                                 searchable={true}
-                                filterable={true}
-                                selectable={true}
+                                filterable={false}
+                                selectable={false}
                                 actions={true}
                                 onEdit={handleEdit}
                                 onDelete={handleDelete}

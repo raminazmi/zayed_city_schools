@@ -5,35 +5,39 @@ export default function useAttendance(students, fetchUrl) {
     const [attendance, setAttendance] = useState({});
     const [isLoading, setIsLoading] = useState(false);
 
-    // عند تحميل المكون: قم بتهيئة الحضور بالقيم الافتراضية
     useEffect(() => {
         const initialAttendance = {};
         students.forEach((student) => {
-            initialAttendance[student.id] = '';
+            initialAttendance[student.id] = 'present';
         });
         setAttendance(initialAttendance);
     }, [students]);
 
-    // جلب بيانات الحضور من قاعدة البيانات
     const fetchAttendance = async () => {
         setIsLoading(true);
         try {
             const response = await axios.get(fetchUrl);
             if (response.data && response.data.attendance) {
-                const attendanceData = {};
-                students.forEach((student) => {
-                    attendanceData[student.id] = response.data.attendance[student.id] || '';
+                setAttendance(prev => {
+                    const newAttendance = {...prev};
+                    Object.keys(response.data.attendance).forEach(studentId => {
+                        if (newAttendance.hasOwnProperty(studentId)) {
+                            newAttendance[studentId] = response.data.attendance[studentId];
+                        }
+                    });
+                    return newAttendance;
                 });
-                setAttendance(attendanceData);
+                return response.data.attendance;
             }
+            return null;
         } catch (error) {
             console.error('Failed to fetch attendance:', error);
+            return null;
         } finally {
             setIsLoading(false);
         }
     };
 
-    // تحديث الحضور للطالب
     const handleAttendanceChange = (studentId, status) => {
         setAttendance(prev => ({
             ...prev,
@@ -41,16 +45,14 @@ export default function useAttendance(students, fetchUrl) {
         }));
     };
 
-    // إعادة تعيين الحضور إلى القيم الافتراضية
     const resetAttendance = () => {
         const reset = {};
         students.forEach(student => {
-            reset[student.id] = '';
+            reset[student.id] = 'present';
         });
         setAttendance(reset);
     };
 
-    // دالة للتحقق من الحضور الكامل
     const pleaseFillAllAttendance = () => {
         return Object.values(attendance).every(status => status !== '');
     };
@@ -61,6 +63,6 @@ export default function useAttendance(students, fetchUrl) {
         resetAttendance,
         fetchAttendance,
         isLoading,
-        pleaseFillAllAttendance  // إعادة الدالة هنا لتتمكن من استخدامها في المكون
+        pleaseFillAllAttendance
     };
 }

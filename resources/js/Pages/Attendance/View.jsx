@@ -74,7 +74,9 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
         notes: record.notes || '-',
         parent_whatsapp: record.parent_whatsapp || '',
     }));
-
+    const sortedTableData = [...tableData].sort((a, b) =>
+        a.student_name.localeCompare(b.student_name, 'ar')
+    );
     const breadcrumbItems = [
         { label: t.attendance, href: '/admin/dashboard/attendance' },
         { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
@@ -215,7 +217,7 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
                         <div className="mx-auto px-4 sm:px-6 md:px-14 mt-6">
                             <DataTable
                                 columns={columns}
-                                data={tableData}
+                                data={sortedTableData}
                                 searchable={false}
                                 filterable={false}
                                 selectable={false}

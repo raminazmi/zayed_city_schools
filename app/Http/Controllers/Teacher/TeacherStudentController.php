@@ -86,7 +86,8 @@ class TeacherStudentController extends Controller
                 'name' => ['required', 'string', 'max:255'],
                 'student_number' => ['required', 'string', 'max:15', 'unique:students,student_number'],
                 'class_id' => ['required', 'exists:classes,id'],
-                'parent_whatsapp' => ['required', 'string', 'max:15'],
+                'parent_whatsapp' => ['required', 'string', 'max:15', 'regex:/^[0-9]{6,}$/'],
+                'country_code' => ['required', 'string', 'regex:/^\+[0-9]{1,3}$/'],
                 'class_description' => ['required', 'integer'],
                 'section_number' => ['nullable', 'string'],
                 'path' => ['nullable', 'string'],
@@ -96,13 +97,21 @@ class TeacherStudentController extends Controller
                 'student_number.required' => 'حقل رقم الطالب مطلوب',
                 'student_number.max' => 'رقم الطالب يجب ألا يتجاوز 15 أحرف',
                 'student_number.unique' => 'رقم الطالب موجود مسبقًا',
-                'parent_whatsapp.max' => 'يجب ألا يزيد حقل WhatsApp الرئيسي عن 15 حرفًا.',
                 'parent_whatsapp.required' => 'حقل رقم واتساب ولي الأمر مطلوب',
+                'parent_whatsapp.max' => 'يجب ألا يزيد حقل WhatsApp الرئيسي عن 15 حرفًا',
+                'parent_whatsapp.regex' => 'رقم واتساب ولي الأمر يجب أن يحتوي على أرقام فقط (6 أرقام على الأقل)',
+                'country_code.required' => 'حقل مقدمة الدولة مطلوب',
+                'country_code.regex' => 'مقدمة الدولة يجب أن تبدأ بـ + متبوعة بـ 1-3 أرقام (مثل +965)',
                 'class_id.required' => 'حقل الصف مطلوب',
                 'class_id.exists' => 'الصف المحدد غير موجود',
                 'class_description.required' => 'حقل وصف الصف مطلوب',
                 'class_description.integer' => 'حقل وصف الصف يجب أن يكون رقماً',
             ]);
+
+            // دمج country_code مع parent_whatsapp
+            $phone = $this->formatPhoneNumber($validated['country_code'], $validated['parent_whatsapp']);
+            $validated['parent_whatsapp'] = $phone;
+            unset($validated['country_code']);
 
             Student::create($validated);
             return Inertia::location("/teacher/dashboard/students/{$validated['class_id']}/view");
@@ -136,7 +145,8 @@ class TeacherStudentController extends Controller
                 'name' => ['required', 'string', 'max:255'],
                 'student_number' => ['required', 'string', 'max:15', 'unique:students,student_number,' . $id],
                 'class_id' => ['required', 'exists:classes,id'],
-                'parent_whatsapp' => ['required', 'string', 'max:15'],
+                'parent_whatsapp' => ['required', 'string', 'max:15', 'regex:/^[0-9]{6,}$/'],
+                'country_code' => ['required', 'string', 'regex:/^\+[0-9]{1,3}$/'],
                 'class_description' => ['required', 'integer'],
                 'section_number' => ['nullable', 'string'],
                 'path' => ['nullable', 'string'],
@@ -146,13 +156,21 @@ class TeacherStudentController extends Controller
                 'student_number.required' => 'حقل رقم الطالب مطلوب',
                 'student_number.max' => 'رقم الطالب يجب ألا يتجاوز 15 أحرف',
                 'student_number.unique' => 'رقم الطالب موجود مسبقًا',
-                'parent_whatsapp.max' => 'يجب ألا يزيد حقل WhatsApp الرئيسي عن 15 حرفًا.',
                 'parent_whatsapp.required' => 'حقل رقم واتساب ولي الأمر مطلوب',
+                'parent_whatsapp.max' => 'يجب ألا يزيد حقل WhatsApp الرئيسي عن 15 حرفًا',
+                'parent_whatsapp.regex' => 'رقم واتساب ولي الأمر يجب أن يحتوي على أرقام فقط (6 أرقام على الأقل)',
+                'country_code.required' => 'حقل مقدمة الدولة مطلوب',
+                'country_code.regex' => 'مقدمة الدولة يجب أن تبدأ بـ + متبوعة بـ 1-3 أرقام (مثل +965)',
                 'class_id.required' => 'حقل الصف مطلوب',
                 'class_id.exists' => 'الصف المحدد غير موجود',
                 'class_description.required' => 'حقل وصف الصف مطلوب',
                 'class_description.integer' => 'حقل وصف الصف يجب أن يكون رقماً',
             ]);
+
+            // دمج country_code مع parent_whatsapp
+            $phone = $this->formatPhoneNumber($validated['country_code'], $validated['parent_whatsapp']);
+            $validated['parent_whatsapp'] = $phone;
+            unset($validated['country_code']);
 
             $student = Student::findOrFail($id);
             $student->update($validated);
@@ -169,5 +187,21 @@ class TeacherStudentController extends Controller
         $classId = $student->class_id;
         $student->delete();
         return Inertia::location("/teacher/dashboard/students/{$classId}/view");
+    }
+
+    private function formatPhoneNumber($countryCode, $number)
+    {
+        // إزالة أي أحرف غير رقمية من الرقم
+        $number = preg_replace('/[^0-9]/', '', $number);
+        // إزالة أي أحرف غير رقمية أو + من المقدمة
+        $countryCode = preg_replace('/[^0-9+]/', '', $countryCode);
+
+        // إذا كان الرقم أو المقدمة فارغين، أعد null
+        if (empty($number) || empty($countryCode)) {
+            return null;
+        }
+
+        // دمج المقدمة مع الرقم
+        return $countryCode . $number;
     }
 }

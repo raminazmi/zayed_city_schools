@@ -46,7 +46,9 @@ export default function TeacherAttendancePage({ auth, classroom, students, class
             if (fetchedAttendance) {
                 Object.keys(fetchedAttendance).forEach(studentId => {
                     if (defaultAttendance.hasOwnProperty(studentId)) {
-                        defaultAttendance[studentId] = fetchedAttendance[studentId];
+                        if (fetchedAttendance[studentId] && fetchedAttendance[studentId] !== 'not_taken') {
+                            defaultAttendance[studentId] = fetchedAttendance[studentId];
+                        }
                     }
                 });
             }
@@ -79,7 +81,7 @@ export default function TeacherAttendancePage({ auth, classroom, students, class
             setIsSubmitting(true);
 
             if (!date || isNaN(new Date(date))) {
-                toast.error("التاريخ المقدم غير صالح!", {
+                toast.error(t.invalid_date || "التاريخ المقدم غير صالح!", {
                     position: "top-right",
                     autoClose: 3000,
                 });
@@ -93,7 +95,7 @@ export default function TeacherAttendancePage({ auth, classroom, students, class
 
             if (response.data.message) {
                 setShowModal(false);
-                toast.success("تم حفظ الحضور بنجاح!", {
+                toast.success(t.attendance_saved || "تم حفظ الحضور بنجاح!", {
                     position: "top-right",
                     autoClose: 3000,
                 });
@@ -102,7 +104,7 @@ export default function TeacherAttendancePage({ auth, classroom, students, class
         } catch (error) {
             console.error("Error saving attendance:", error);
             toast.error(
-                error.response?.data?.message || "فشل في حفظ الحضور",
+                error.response?.data?.message || t.error_saving_attendance || "فشل في حفظ الحضور",
                 {
                     position: "top-right",
                     autoClose: 3000,
@@ -135,6 +137,10 @@ export default function TeacherAttendancePage({ auth, classroom, students, class
         attendance_status: attendance[student.id],
     }));
 
+    const sortedTableData = [...tableData].sort((a, b) =>
+        a.student_name.localeCompare(b.student_name, 'ar')
+    );
+
     const breadcrumbItems = [
         { label: t.attendance, href: '/teacher/dashboard/attendance' },
         { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
@@ -159,7 +165,7 @@ export default function TeacherAttendancePage({ auth, classroom, students, class
                         <div className="mx-auto px-4 sm:px-6 md:px-14 mt-6">
                             <DataTable
                                 columns={columns}
-                                data={tableData}
+                                data={sortedTableData}
                                 selectable={false}
                                 searchable={false}
                                 filterable={false}
@@ -190,8 +196,7 @@ export default function TeacherAttendancePage({ auth, classroom, students, class
                         {!error && (
                             <button
                                 type="button"
-                                className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}
+                                className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 onClick={confirmSave}
                                 disabled={isSubmitting}
                             >

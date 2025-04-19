@@ -38,18 +38,24 @@ export default function AttendancePage({ auth, classroom, students, classId, dat
     const { attendance, handleAttendanceChange, resetAttendance, fetchAttendance, pleaseFillAllAttendance } = useAttendance(students, `/admin/dashboard/attendance/${classroom.id}/view?date=${date}`);
 
     useEffect(() => {
-        fetchAttendance().then((fetchedAttendance) => {
-            const initialAttendance = {};
+        fetchAttendance().then(fetchedAttendance => {
+            const defaultAttendance = {};
             students.forEach(student => {
-                if (fetchedAttendance && fetchedAttendance[student.id] !== undefined) {
-                    initialAttendance[student.id] = fetchedAttendance[student.id];
-                } else {
-                    initialAttendance[student.id] = 'present';
-                }
+                defaultAttendance[student.id] = 'present';
             });
 
-            Object.keys(initialAttendance).forEach(studentId => {
-                handleAttendanceChange(studentId, initialAttendance[studentId]);
+            if (fetchedAttendance) {
+                Object.keys(fetchedAttendance).forEach(studentId => {
+                    if (defaultAttendance.hasOwnProperty(studentId)) {
+                        if (fetchedAttendance[studentId] && fetchedAttendance[studentId] !== 'not_taken') {
+                            defaultAttendance[studentId] = fetchedAttendance[studentId];
+                        }
+                    }
+                });
+            }
+
+            Object.keys(defaultAttendance).forEach(studentId => {
+                handleAttendanceChange(studentId, defaultAttendance[studentId]);
             });
         }).catch((error) => {
             console.error("Error fetching attendance:", error);
@@ -132,6 +138,10 @@ export default function AttendancePage({ auth, classroom, students, classId, dat
         attendance_status: attendance[student.id],
     }));
 
+    const sortedTableData = [...tableData].sort((a, b) =>
+        a.student_name.localeCompare(b.student_name, 'ar')
+    );
+
     const breadcrumbItems = [
         { label: t.attendance, href: '/admin/dashboard/attendance' },
         { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
@@ -156,7 +166,7 @@ export default function AttendancePage({ auth, classroom, students, classId, dat
                         <div className="mx-auto px-4 sm:px-6 md:px-14 mt-6">
                             <DataTable
                                 columns={columns}
-                                data={tableData}
+                                data={sortedTableData}
                                 selectable={false}
                                 searchable={false}
                                 filterable={false}

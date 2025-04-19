@@ -68,7 +68,6 @@ class StudentsImport implements ToModel
                 ->first();
 
             if (!$classRoom) {
-                // Get at least 2 teachers to assign to the new class
                 $teachers = Teacher::select('id')->take(2)->get();
                 if ($teachers->count() < 1) {
                     Log::warning("الصف {$this->rowIndex}: لا يوجد معلمون متاحون لإنشاء صف دراسي جديد.");
@@ -84,14 +83,12 @@ class StudentsImport implements ToModel
                     'path' => $sectionData['path'],
                 ]);
 
-                // Attach the teachers to the new class
                 $classRoom->teachers()->attach($teachers->pluck('id')->toArray());
-
-                // Removed automatic reassignment
-                // $this->assignTeachersToClasses();
-
                 Log::info("الصف {$this->rowIndex}: تم إنشاء صف دراسي جديد: {$classRoom->name} مع القسم {$classRoom->section} وتم تعيين المعلمين: " . $teachers->pluck('id')->implode(', '));
             }
+
+            // معالجة رقم الهاتف
+            $phone = $this->formatPhoneNumber((string)($row[4] ?? ''));
 
             $student = new Student([
                 'student_number' => $studentNumber,
@@ -100,7 +97,7 @@ class StudentsImport implements ToModel
                 'class_description' => $sectionData['class_description'],
                 'path' => $sectionData['path'],
                 'section_number' => $sectionData['section_number'],
-                'parent_whatsapp' => (string)($row[4] ?? null),
+                'parent_whatsapp' => $phone,
             ]);
 
             return $student;
@@ -122,5 +119,28 @@ class StudentsImport implements ToModel
             'path' => trim($matches[2]),
             'section_number' => (int)trim($matches[3])
         ];
+    }
+
+    private function formatPhoneNumber($number)
+    {
+        // إزالة أي أحرف غير رقمية باستثناء +
+        $number = preg_replace('/[^0-9+]/', '', $number);
+
+        // إذا كان الرقم فارغًا، أعد null
+        if (empty($number)) {
+            return null;
+        }
+
+        // التحقق مما إذا كان الرقم يبدأ بمقدمة دولية
+        if (preg_match('/^\+/', $number)) {
+            return $number; // اترك الرقم كما هو إذا كان يحتوي على مقدمة
+        } else {
+            // إذا كان الرقم يبدأ بـ 0، قم بإزالته
+            if (preg_match('/^0/', $number)) {
+                $number = substr($number, 1);
+            }
+            // أضف المقدمة الافتراضية للإمارات
+            return '+971' . $number;
+        }
     }
 }

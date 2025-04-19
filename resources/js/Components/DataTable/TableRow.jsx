@@ -159,13 +159,13 @@ export default function TableRow({
             {
                 (actions || customActions) && (
                     <td
-                        className={`px-6 py-4 ${language === 'en' ? 'text-right' : 'text-left'
+                        className={`px-6 py-2 ${language === 'en' ? 'text-right' : 'text-left'
                             } whitespace-nowrap text-sm font-medium`}
                     >
                         <div className="relative" ref={actionsRef}>
                             <button
                                 onClick={() => setShowActions(!showActions)}
-                                className={`p-2 rounded-full ${isDark ? 'hover:bg-DarkBG2' : 'hover:bg-LightBG2'
+                                className={`p-0 rounded-full ${isDark ? 'hover:bg-DarkBG2' : 'hover:bg-LightBG2'
                                     } ${showActions
                                         ? isDark
                                             ? 'bg-DarkBG2'

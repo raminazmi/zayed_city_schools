@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 
 export default function AttendanceButtons({ studentId, currentStatus, onChange, translations }) {
-   const isDark = useSelector((state) => state.theme.darkMode === "dark");
+    const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const [lateTime, setLateTime] = useState('');
 
     const statuses = [
@@ -11,14 +11,18 @@ export default function AttendanceButtons({ studentId, currentStatus, onChange, 
         { value: 'late', colorClass: 'bg-yellow-500 hover:bg-yellow-600' }
     ];
 
-
     const handleStatusChange = (status) => {
-        onChange(studentId, status === 'late' ? { status, lateTime } : status);
+        if (status === 'late') {
+            onChange(studentId, { status, lateTime: lateTime || '00:00' });
+        } else {
+            onChange(studentId, status);
+        }
     };
 
     const handleLateTimeChange = (e) => {
-        setLateTime(e.target.value);
-        onChange(studentId, { status: 'late', lateTime: e.target.value });
+        const time = e.target.value;
+        setLateTime(time);
+        onChange(studentId, { status: 'late', lateTime: time });
     };
 
     const getButtonClass = (statusValue) => {
@@ -29,8 +33,8 @@ export default function AttendanceButtons({ studentId, currentStatus, onChange, 
         const status = statuses.find(s => s.value === statusValue);
 
         return `px-3 py-1 rounded transition-colors ${isSelected
-                ? status.colorClass + ' text-white'
-                : `${isDark ? 'bg-[#343438]' : 'bg-gray-200 hover:bg-gray-300'}  `
+            ? status.colorClass + ' text-white'
+            : `${isDark ? 'bg-[#343438]' : 'bg-gray-200 hover:bg-gray-300'}`
             }`;
     };
 

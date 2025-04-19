@@ -17,32 +17,39 @@ export default function AddStudentPage({ auth, classes, classId }) {
         student_number: '',
         class_id: classId,
         parent_whatsapp: '',
+        country_code: '+971', // إضافة حقل للمقدمة
         class_description: 0,
         section_number: '',
         path: 'general',
     });
 
     const [countries] = React.useState(countriesData);
-    const [countryCode, setCountryCode] = React.useState('+965');
     const [filteredCountries] = React.useState(countriesData);
+
+    const handlePhoneChange = (e) => {
+        // السماح بالأرقام فقط وإزالة الصفر الأول
+        const value = e.target.value.replace(/[^0-9]/g, '').replace(/^0/, '');
+        setData('parent_whatsapp', value);
+    };
+
+    const handleCountryCodeChange = (e) => {
+        setData('country_code', e.target.value);
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        // تحقق من أن parent_whatsapp غير فارغ
+        if (!data.parent_whatsapp) {
+            return alert('يرجى إدخال رقم واتساب ولي الأمر');
+        }
+
+        // إرسال البيانات مع country_code و parent_whatsapp منفصلين
         post('/admin/dashboard/students', {
             preserveScroll: true,
             onError: (errors) => {
                 console.log(errors);
             },
         });
-    };
-
-    const handlePhoneChange = (e) => {
-        const value = e.target.value.replace(/[^0-9]/g, '').replace(/^0/, '');
-        setData('parent_whatsapp', value);
-    };
-
-    const handleCountryCodeChange = (e) => {
-        setCountryCode(e.target.value);
     };
 
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
@@ -102,7 +109,7 @@ export default function AddStudentPage({ auth, classes, classId }) {
                                                 id="class_id"
                                                 name="class_id"
                                                 disabled
-                                                className={`w-[100%] focus:border-primaryColor focus:ring-primaryColor rounded-md shadow-sm border-none h-[45px] mt-3 ${isDark ? 'bg-DarkBG1 text-TextLight' : 'bg-LightBG1 text-TextDark border-gray-400 border-[0.1px]'} `}
+                                                className={`w-[100%] focus:border-primaryColor focus:ring-primaryColor rounded-md shadow-sm border-none h-[45px] mt-3 ${isDark ? 'bg-DarkBG1 text-TextLight' : 'bg-LightBG1 text-TextDark border-gray-400 border-[0.1px]'}`}
                                                 value={data.class_id}
                                                 onChange={(e) => setData('class_id', e.target.value)}
                                             >
@@ -120,7 +127,7 @@ export default function AddStudentPage({ auth, classes, classId }) {
                                             <div className="relative flex items-center gap-2 mt-3 bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
                                                 <select
                                                     name="countryCode"
-                                                    value={countryCode}
+                                                    value={data.country_code}
                                                     onChange={handleCountryCodeChange}
                                                     className="w-1/3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent dark:bg-gray-600 py-2.5 pl-1 pr-2 text-gray-900 dark:text-white outline-none focus:border-primary focus-visible:shadow-md dark:focus:border-indigo-400 transition-all duration-200"
                                                 >
@@ -145,6 +152,7 @@ export default function AddStudentPage({ auth, classes, classId }) {
                                                 </div>
                                             </div>
                                             {errors.parent_whatsapp && <InputError message={errors.parent_whatsapp} className="mt-2" />}
+                                            {errors.country_code && <InputError message={errors.country_code} className="mt-2" />}
                                         </div>
                                     </div>
                                     <div className='flex justify-between gap-6'>
