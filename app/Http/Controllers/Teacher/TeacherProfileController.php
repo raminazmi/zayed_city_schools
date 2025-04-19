@@ -12,6 +12,7 @@ use Inertia\Response;
 use App\Http\Controllers\Controller;
 use App\Models\Teacher;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class TeacherProfileController extends Controller
 {
@@ -48,5 +49,19 @@ class TeacherProfileController extends Controller
         }
 
         return Redirect::route('teacher.profile.edit');
+    }
+
+    public function updatePassword(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'confirmed', 'min:8'],
+        ]);
+
+        $request->user()->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return Redirect::back()->with('status', 'password-updated');
     }
 }

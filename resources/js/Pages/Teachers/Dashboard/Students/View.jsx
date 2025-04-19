@@ -42,6 +42,10 @@ export default function TeacherStudentsViewPage({ auth, students, classes, class
         };
     });
 
+    const sortedTableData = [...tableData].sort((a, b) =>
+        a.student_name.localeCompare(b.student_name, 'ar')
+    );
+
     const handleEdit = (row) => {
         router.get(`/teacher/dashboard/students/${row.id}/edit`);
     };
@@ -87,7 +91,7 @@ export default function TeacherStudentsViewPage({ auth, students, classes, class
                         <div className="mx-auto px-4 sm:px-6 md:px-8 mt-6">
                             <DataTable
                                 columns={columns}
-                                data={tableData}
+                                data={sortedTableData}
                                 searchable={true}
                                 filterable={true}
                                 selectable={true}

@@ -51,7 +51,7 @@ export default function Sidebar({ role, className, showingDropdown, setShowingDr
           </Link>
         ))}
       </nav>
-      <div className="sm:hidden mt-auto relative pb-6">
+      <div className="sm:hidden mt-auto relative pb-2">
         <button
           onClick={() => setShowingDropdown(!showingDropdown)}
           className={`w-full flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md ${isDark ? 'text-TextLight hover:bg-DarkBG1' : 'text-TextDark hover:bg-LightBG3'}`}

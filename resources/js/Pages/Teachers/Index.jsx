@@ -36,6 +36,10 @@ export default function TeachersPage({ auth, teachers }) {
         classes: item.grades,
     }));
 
+    const sortedTableData = [...tableData].sort((a, b) =>
+        a.teacher_name.localeCompare(b.teacher_name, 'ar')
+    );
+
     const handleEdit = (row) => {
         router.get(`/admin/dashboard/teachers/${row.id}/edit`);
     };
@@ -113,7 +117,7 @@ export default function TeachersPage({ auth, teachers }) {
                         <div className="mx-auto px-4 sm:px-6 md:px-8 mt-6">
                             <DataTable
                                 columns={columns}
-                                data={tableData}
+                                data={sortedTableData}
                                 searchable={true}
                                 filterable={true}
                                 selectable={true}
