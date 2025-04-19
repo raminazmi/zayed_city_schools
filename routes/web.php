@@ -64,6 +64,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/{id}/save-attendance', [AttendanceController::class, 'saveAttendance']);
         Route::get('/{id}/view', [AttendanceController::class, 'viewAttendance'])->name('view');
         Route::post('/send-whatsapp-notification', [AttendanceController::class, 'sendNotification']);
+        Route::post('/send-whatsapp-document', [AttendanceController::class, 'sendDocument']);
     });
 
     Route::prefix('dashboard/classes')->name('classes.')->group(function () {

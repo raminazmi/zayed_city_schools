@@ -20,17 +20,30 @@ export default function TeacherStudentsPage({ auth, classes, pagination }) {
         { label: t['list'] }
     ];
 
+    const shortenTeacherName = (teacherName) => {
+        const names = teacherName.trim().split(' ');
+        if (names.length < 2) return teacherName;
+        return `${names[0]} ${names[1].substring(0, 4)}..`;
+    };
+
+    const toggleTeacherNames = (classId) => {
+        setExpandedTeachers(prev => ({
+            ...prev,
+            [classId]: !prev[classId]
+        }));
+    };
+
     const columns = [
         { key: 'class_name', label: t['class_name'], sortable: true },
         { key: 'section', label: t['section'], sortable: true },
         { key: 'students_count', label: t['numbers_of_students'], sortable: true },
         {
-            key: 'teacher_name',
+            key: 'teacher_names',
             label: t['teachers'],
             sortable: true,
             render: (value, row) => {
                 const isExpanded = expandedTeachers[row.id];
-                const displayText = isExpanded ? row.teacher_name_full : row.teacher_name_short;
+                const displayText = isExpanded ? row.teacher_names_full : row.teacher_names_short;
 
                 return (
                     <span
@@ -40,41 +53,24 @@ export default function TeacherStudentsPage({ auth, classes, pagination }) {
                         {displayText}
                     </span>
                 );
-            },
+            }
         },
     ];
 
-    const shortenTeacherName = (teacherName) => {
-        const names = teacherName.trim().split(' ');
-        if (names.length < 2) {
-            return teacherName;
-        }
-        const firstName = names[0];
-        const secondName = names[1].substring(0, 4);
-        return `${firstName} ${secondName}..`;
-    };
-
     const tableData = classes.map(classItem => {
-        const teacherNames = classItem.teacher_name ? classItem.teacher_name.split(',').map(name => name.trim()) : [];
-        const shortenedNames = teacherNames.map(name => shortenTeacherName(name)).join(', ');
-        const fullNames = classItem.teacher_name || '-';
+        const teacherNames = classItem.teacher_name?.split(',').map(n => n.trim()) || [];
+        const shortenedNames = teacherNames.map(shortenTeacherName).join(', ');
+        const fullNames = teacherNames.join(', ') || '-';
 
         return {
             id: classItem.id,
             section: classItem.section,
             class_name: classItem.class_name,
             students_count: classItem.students_count,
-            teacher_name_short: shortenedNames || '-',
-            teacher_name_full: fullNames,
+            teacher_names_short: shortenedNames,
+            teacher_names_full: fullNames
         };
     });
-
-    const toggleTeacherNames = (classId) => {
-        setExpandedTeachers(prev => ({
-            ...prev,
-            [classId]: !prev[classId],
-        }));
-    };
 
     const handleView = (row) => {
         router.visit(`/teacher/dashboard/students/${row.id}/view`);
@@ -89,7 +85,7 @@ export default function TeacherStudentsPage({ auth, classes, pagination }) {
                         <div className="mx-auto px-4 sm:px-6 md:px-14">
                             <Breadcrumb items={breadcrumbItems} />
                             <div className='flex justify-between items-center'>
-                                <h1 className="text-2xl sm:text-3xl  mt-3 font-bold text-primaryColor">
+                                <h1 className="text-2xl sm:text-3xl mt-3 font-bold text-primaryColor">
                                     {t['classes']}
                                 </h1>
                             </div>
@@ -102,16 +98,14 @@ export default function TeacherStudentsPage({ auth, classes, pagination }) {
                                 filterable={false}
                                 selectable={false}
                                 actions={false}
-                                buttons={[
-                                    {
-                                        label: t['veiw'],
-                                        onClick: handleView,
-                                        bgColor: 'bg-blue-500',
-                                        hoverColor: 'hover:bg-green-600',
-                                        ringColor: 'ring-blue-500',
-                                        show: (row) => row,
-                                    },
-                                ]}
+                                buttons={[{
+                                    label: t['veiw'],
+                                    onClick: handleView,
+                                    bgColor: 'bg-blue-500',
+                                    hoverColor: 'hover:bg-blue-600',
+                                    ringColor: 'ring-blue-500',
+                                    show: (row) => !!row,
+                                }]}
                                 pagination={pagination}
                             />
                         </div>

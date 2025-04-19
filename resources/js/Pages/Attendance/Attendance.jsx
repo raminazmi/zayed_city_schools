@@ -38,7 +38,20 @@ export default function AttendancePage({ auth, classroom, students, classId, dat
     const { attendance, handleAttendanceChange, resetAttendance, fetchAttendance, pleaseFillAllAttendance } = useAttendance(students, `/admin/dashboard/attendance/${classroom.id}/view?date=${date}`);
 
     useEffect(() => {
-        fetchAttendance().catch((error) => {
+        fetchAttendance().then((fetchedAttendance) => {
+            const initialAttendance = {};
+            students.forEach(student => {
+                if (fetchedAttendance && fetchedAttendance[student.id] !== undefined) {
+                    initialAttendance[student.id] = fetchedAttendance[student.id];
+                } else {
+                    initialAttendance[student.id] = 'present';
+                }
+            });
+
+            Object.keys(initialAttendance).forEach(studentId => {
+                handleAttendanceChange(studentId, initialAttendance[studentId]);
+            });
+        }).catch((error) => {
             console.error("Error fetching attendance:", error);
             toast.error("فشل في جلب بيانات الحضور.", {
                 position: "top-right",

@@ -8,6 +8,8 @@ import TextInput from '@/Components/TextInput';
 import InputError from '@/Components/InputError';
 import { translations } from '@translations';
 import { useSelector } from 'react-redux';
+import { FiPhone } from 'react-icons/fi';
+import countriesData from '../../../../countries.json';
 
 export default function TeacherAddStudentPage({ auth, classes, classId }) {
     const { data, setData, post, errors, processing } = useForm({
@@ -20,6 +22,10 @@ export default function TeacherAddStudentPage({ auth, classes, classId }) {
         path: 'general',
     });
 
+    const [countries] = React.useState(countriesData);
+    const [countryCode, setCountryCode] = React.useState('+965');
+    const [filteredCountries] = React.useState(countriesData);
+
     const handleSubmit = (e) => {
         e.preventDefault();
         post('/teacher/dashboard/students', {
@@ -30,12 +36,22 @@ export default function TeacherAddStudentPage({ auth, classes, classId }) {
         });
     };
 
+    const handlePhoneChange = (e) => {
+        const value = e.target.value.replace(/[^0-9]/g, '').replace(/^0/, '');
+        setData('parent_whatsapp', value);
+    };
+
+    const handleCountryCodeChange = (e) => {
+        setCountryCode(e.target.value);
+    };
+
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
     const t = translations[language];
+    const classroom = classes.find(cls => cls.id == classId) || {};
     const breadcrumbItems = [
         { label: t['student_management'], href: '/teacher/dashboard/students' },
-        { label: t['add_student'] }
+        { label: classroom.name ? `${classroom.name} / ${classroom.path} / شعبة ${classroom.section_number}` : t['add_student'] },
     ];
 
     return (
@@ -46,7 +62,7 @@ export default function TeacherAddStudentPage({ auth, classes, classId }) {
                     <div className="py-6">
                         <div className="mx-auto px-4 sm:px-6 md:px-14">
                             <Breadcrumb items={breadcrumbItems} />
-                            <h1 className="text-2xl sm:text-3xl  mt-3 font-bold text-primaryColor">
+                            <h1 className="text-2xl sm:text-3xl mt-3 font-bold text-primaryColor">
                                 {t['add_student']}
                             </h1>
                         </div>
@@ -101,14 +117,33 @@ export default function TeacherAddStudentPage({ auth, classes, classId }) {
                                         </div>
                                         <div className='w-full'>
                                             <InputLabel value={t['parent_whatsapp']} />
-                                            <TextInput
-                                                id="parent_whatsapp"
-                                                type="tel"
-                                                name="parent_whatsapp"
-                                                className={`mt-1 block w-full ${isDark ? 'bg-DarkBG1' : 'bg-TextLight'}`}
-                                                value={data.parent_whatsapp}
-                                                onChange={(e) => setData('parent_whatsapp', e.target.value)}
-                                            />
+                                            <div className="relative flex items-center gap-2 mt-3 bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
+                                                <select
+                                                    name="countryCode"
+                                                    value={countryCode}
+                                                    onChange={handleCountryCodeChange}
+                                                    className="w-1/3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent dark:bg-gray-600 py-2.5 pl-1 pr-2 text-gray-900 dark:text-white outline-none focus:border-primary focus-visible:shadow-md dark:focus:border-indigo-400 transition-all duration-200"
+                                                >
+                                                    {filteredCountries.map((country) => (
+                                                        <option key={country.code} value={country.code}>
+                                                            {country.code} ({country.arabicName})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <div className="w-2/3 relative">
+                                                    <TextInput
+                                                        type="tel"
+                                                        name="parent_whatsapp"
+                                                        placeholder="123456789"
+                                                        value={data.parent_whatsapp}
+                                                        onChange={handlePhoneChange}
+                                                        className={`w-full mt-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent py-1 pl-3 pr-10 text-gray-900 dark:text-white outline-none focus:border-primary focus-visible:shadow-md dark:focus:border-indigo-400 transition-all duration-200 ${isDark ? 'bg-DarkBG1' : 'bg-TextLight'}`}
+                                                    />
+                                                    <span className="absolute right-3 top-2.5">
+                                                        <FiPhone className="text-xl text-gray-500 dark:text-gray-400" />
+                                                    </span>
+                                                </div>
+                                            </div>
                                             {errors.parent_whatsapp && <InputError message={errors.parent_whatsapp} className="mt-2" />}
                                         </div>
                                     </div>

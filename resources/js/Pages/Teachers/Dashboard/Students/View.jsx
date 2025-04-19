@@ -16,19 +16,17 @@ export default function TeacherStudentsViewPage({ auth, students, classes, class
     const language = useSelector((state) => state.language.current);
     const t = translations[language];
     const classroom = classes.find(cls => cls.id);
+
     const breadcrumbItems = [
         { label: t['student_management'], href: '/teacher/dashboard/students' },
-        { label: classroom ? classroom.name : '-' },
-        { label: t['list'] }
+        { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
     const columns = [
         { key: 'student_number', label: t['student_number'], sortable: true },
         { key: 'student_name', label: t['student_name'], sortable: true },
         { key: 'parent_whatsapp', label: t['parent_whatsapp'], sortable: true },
-        { key: 'class_description', label: t['class_description'], sortable: true },
-        { key: 'section_number', label: t['section_number'], sortable: true },
-        { key: 'path', label: t['path'], sortable: true },
+        { key: 'class_description', label: t['class'], sortable: true },
     ];
 
     const tableData = students.data.map(student => {
@@ -38,7 +36,7 @@ export default function TeacherStudentsViewPage({ auth, students, classes, class
             student_number: student.student_number,
             student_name: student.name,
             parent_whatsapp: student.parent_whatsapp,
-            class_description: student.class_description,
+            class_description: student.section_number + ' / ' + '[' + student.path + ']' + ' / ' + student.class_description,
             section_number: student.section_number,
             path: student.path,
         };
@@ -79,7 +77,7 @@ export default function TeacherStudentsViewPage({ auth, students, classes, class
                         <div className="mx-auto px-4 sm:px-6 md:px-14">
                             <Breadcrumb items={breadcrumbItems} />
                             <div className='flex justify-between items-center'>
-                                <h1 className="text-2xl sm:text-3xl  mt-3 font-bold text-primaryColor">
+                                <h1 className="text-2xl sm:text-3xl mt-3 font-bold text-primaryColor">
                                     {t['students']}
                                 </h1>
                                 <PrimaryButton children={t['add_student']} link={`/teacher/dashboard/students/add-new-student?id=${classId}`} />

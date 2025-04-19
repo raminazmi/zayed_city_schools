@@ -80,6 +80,60 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
         { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
+    const sendDocument = async (row) => {
+        if (!row.parent_whatsapp) {
+            toast.error('لا يوجد رقم هاتف مسجل لولي الأمر');
+            return;
+        }
+
+        try {
+            setSendingStatus(prev => ({
+                ...prev,
+                [row.id]: { ...prev[row.id], document: true }
+            }));
+
+            const documentUrl = 'https://pdfobject.com/pdf/sample.pdf';
+            const filename = 'تقرير_الطالب.pdf';
+            const caption = `تقرير الطالب ${row.student_name}`;
+
+            const response = await axios.post('/admin/dashboard/attendance/send-whatsapp-document', {
+                phone: row.parent_whatsapp,
+                document: documentUrl,
+                filename: filename,
+                caption: caption
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                },
+                timeout: 20000
+            });
+
+            if (response.data.status) {
+                toast.success(response.data.message || 'تم إرسال المستند بنجاح');
+            } else {
+                throw new Error(response.data.message || 'فشل في إرسال المستند');
+            }
+        } catch (error) {
+            let errorMsg = 'حدث خطأ غير متوقع';
+
+            if (error.response) {
+                errorMsg = error.response.data.message ||
+                    (error.response.data.error ? JSON.stringify(error.response.data.error) : errorMsg);
+            } else if (error.message) {
+                errorMsg = error.message;
+            }
+
+            toast.error(`حدث خطأ أثناء إرسال المستند: ${errorMsg}`);
+            console.error('Error details:', error);
+        } finally {
+            setSendingStatus(prev => ({
+                ...prev,
+                [row.id]: { ...prev[row.id], document: false }
+            }));
+        }
+    };
+
     const sendNotification = async (row) => {
         if (!row.parent_whatsapp) {
             toast.error('لا يوجد رقم هاتف مسجل لولي الأمر');
@@ -166,16 +220,18 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
                                 filterable={false}
                                 selectable={false}
                                 actions={false}
-                                buttons={[{
-                                    label: t['send_whatsapp'],
-                                    onClick: (row) => sendNotification(row),
-                                    icon: <MessageCircleReply className="w-4 h-4 mx-1" />,
-                                    bgColor: 'bg-green-500',
-                                    hoverColor: 'bg-green-500',
-                                    ringColor: 'ring-green-500',
-                                    show: (row) => ![t.attendance_not_taken, t.present].includes(row.status.props.children),
-                                    loading: (row) => sendingStatus[row.id],
-                                }]}
+                                buttons={[
+                                    {
+                                        label: t['send_whatsapp'],
+                                        onClick: (row) => sendNotification(row),
+                                        icon: <MessageCircleReply className="w-4 h-4 mx-1" />,
+                                        bgColor: 'bg-green-500',
+                                        hoverColor: 'bg-green-500',
+                                        ringColor: 'ring-green-500',
+                                        show: (row) => ![t.attendance_not_taken, t.present].includes(row.status.props.children),
+                                        loading: (row) => sendingStatus[row.id],
+                                    }
+                                ]}
                             />
                         </div>
                     </div>

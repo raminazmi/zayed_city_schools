@@ -545,4 +545,90 @@ class AttendanceController extends Controller
         }
         return $phone;
     }
+
+
+    public function sendDocument(Request $request)
+    {
+        \Log::info('WhatsApp Document Request:', $request->all());
+
+        $validator = Validator::make($request->all(), [
+            'phone' => ['required', 'string', 'regex:/^(\+?971|0)?(5|59)\d{7,8}$/'],
+            'document' => 'required|url',
+            'filename' => 'required|string',
+            'caption' => 'nullable|string|max:1000',
+        ], [
+            'phone.regex' => 'يجب أن يبدأ رقم الهاتف بـ 971 أو 0 أو +971 متبوعاً بـ 5 أو 59',
+            'document.url' => 'يجب أن يكون رابط المستند صالحاً',
+        ]);
+
+        if ($validator->fails()) {
+            \Log::error('Validation failed:', $validator->errors()->toArray());
+            return response()->json([
+                'status' => false,
+                'message' => 'خطأ في التحقق من البيانات',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            if (!env('ULTRAMSG_TOKEN')) {
+                throw new \Exception('UltraMSG token not configured');
+            }
+
+            $client = new \GuzzleHttp\Client([
+                'timeout' => 20,
+                'verify' => false
+            ]);
+
+            $response = $client->post('https://api.ultramsg.com/' . env('ULTRAMSG_INSTANCE_ID') . '/messages/document', [
+                'form_params' => [
+                    'token' => env('ULTRAMSG_TOKEN'),
+                    'to' => $this->formatPhoneNumber($request->phone),
+                    'document' => $request->document,
+                    'filename' => $request->filename,
+                    'caption' => $request->caption ?? '',
+                ],
+                'headers' => [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                    'Accept' => 'application/json'
+                ],
+            ]);
+
+            $result = json_decode($response->getBody(), true);
+            \Log::info('UltraMSG Document API Response:', $result);
+
+            if (!isset($result['sent']) || $result['sent'] !== 'true') {
+                $errorMessage = is_array($result['error']) ? implode(', ', $result['error']) : $result['error'];
+                throw new \Exception($errorMessage ?? 'Unknown error from UltraMSG API');
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم إرسال المستند بنجاح'
+            ]);
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            $errorResponse = $e->hasResponse() ? json_decode($e->getResponse()->getBody()->getContents(), true) : null;
+            $errorMessage = $errorResponse['error'] ?? $e->getMessage();
+
+            \Log::error('HTTP Request Exception:', [
+                'message' => $errorMessage,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'فشل في إرسال المستند: ' . (is_array($errorMessage) ? implode(', ', $errorMessage) : $errorMessage)
+            ], 500);
+        } catch (\Exception $e) {
+            \Log::error('General Exception:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'حدث خطأ غير متوقع: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

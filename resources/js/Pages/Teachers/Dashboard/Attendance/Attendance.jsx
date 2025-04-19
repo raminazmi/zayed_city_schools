@@ -37,7 +37,24 @@ export default function TeacherAttendancePage({ auth, classroom, students, class
     const dayName = dayNames[moment(date).format("dddd")];
 
     useEffect(() => {
-        fetchAttendance().catch((error) => {
+        fetchAttendance().then(fetchedAttendance => {
+            const defaultAttendance = {};
+            students.forEach(student => {
+                defaultAttendance[student.id] = 'present';
+            });
+
+            if (fetchedAttendance) {
+                Object.keys(fetchedAttendance).forEach(studentId => {
+                    if (defaultAttendance.hasOwnProperty(studentId)) {
+                        defaultAttendance[studentId] = fetchedAttendance[studentId];
+                    }
+                });
+            }
+
+            Object.keys(defaultAttendance).forEach(studentId => {
+                handleAttendanceChange(studentId, defaultAttendance[studentId]);
+            });
+        }).catch((error) => {
             console.error("Error fetching attendance:", error);
             toast.error("فشل في جلب بيانات الحضور.", {
                 position: "top-right",
@@ -120,7 +137,7 @@ export default function TeacherAttendancePage({ auth, classroom, students, class
 
     const breadcrumbItems = [
         { label: t.attendance, href: '/teacher/dashboard/attendance' },
-        { label: classroom.name },
+        { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
     return (

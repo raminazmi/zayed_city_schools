@@ -77,7 +77,7 @@ export default function TeacherAttendanceViewPage({ auth, classroom, attendance,
 
     const breadcrumbItems = [
         { label: t.attendance, href: '/teacher/dashboard/attendance' },
-        { label: classroom.name },
+        { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
     const sendNotification = async (row) => {

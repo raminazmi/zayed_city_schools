@@ -20,15 +20,7 @@ class TeacherStudentController extends Controller
             })
             ->withCount('students')
             ->whereNull('deleted_at')
-            ->select(
-                'id',
-                'name',
-                'section',
-                'created_at',
-                'class_description',
-                'section_number',
-                'path'
-            )
+            ->select('id', 'name', 'section', 'class_description', 'section_number', 'path')
             ->orderByRaw('CAST(class_description AS UNSIGNED) ASC')
             ->orderByRaw("CASE WHEN path = 'Adv-3rdLanguage' THEN 0 ELSE 1 END")
             ->orderBy('section_number', 'asc')
@@ -40,24 +32,30 @@ class TeacherStudentController extends Controller
                 'class_name' => $class->name,
                 'teacher_name' => $class->teachers->pluck('name')->join(', ') ?: '-',
                 'section' => $class->section,
-                'students_count' => $class->students->count(),
+                'students_count' => $class->students_count,
             ];
         });
 
         return Inertia::render('Teachers/Dashboard/Students/Index', [
             'classes' => $classesData,
+            'pagination' => [
+                'current_page' => $classes->currentPage(),
+                'last_page' => $classes->lastPage(),
+                'per_page' => $classes->perPage(),
+                'total' => $classes->total(),
+                'links' => $classes->links(),
+            ],
         ]);
     }
 
     public function view(Request $request, $classId)
     {
         $students = Student::where('class_id', $classId)
+            ->select('id', 'name', 'student_number', 'class_id', 'parent_whatsapp', 'class_description', 'section_number', 'path', 'created_at')
             ->latest()
             ->paginate(9999999999999);
 
-        $classes = ClassRoom::where('id', $classId)
-            ->select('id', 'name')
-            ->get();
+        $classes = ClassRoom::where('id', $classId)->get();
 
         return Inertia::render('Teachers/Dashboard/Students/View', [
             'students' => $students,
@@ -69,32 +67,24 @@ class TeacherStudentController extends Controller
     public function create(Request $request)
     {
         $teacherEmail = Auth::user()->email;
-
-        $classes = ClassRoom::with(['teachers', 'students'])
-            ->whereHas('teachers', function ($query) use ($teacherEmail) {
-                $query->where('email', $teacherEmail);
-            })
-            ->select('id', 'name')
-            ->paginate(9999999999999);
+        $classes = ClassRoom::whereHas('teachers', function ($query) use ($teacherEmail) {
+            $query->where('email', $teacherEmail);
+        })
+            ->select('id', 'name', 'path', 'section_number')
+            ->get();
 
         return Inertia::render('Teachers/Dashboard/Students/Create', [
-            'classes' => $classes->map(function ($class) {
-                return [
-                    'id' => $class->id,
-                    'name' => $class->name,
-                ];
-            }),
+            'classes' => $classes,
             'classId' => $request->query('id'),
         ]);
     }
-
 
     public function store(Request $request)
     {
         try {
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'student_number' => ['required', 'string', 'size:6', 'unique:students,student_number'],
+                'student_number' => ['required', 'string', 'max:15', 'unique:students,student_number'],
                 'class_id' => ['required', 'exists:classes,id'],
                 'parent_whatsapp' => ['required', 'string', 'max:15'],
                 'class_description' => ['required', 'integer'],
@@ -104,7 +94,7 @@ class TeacherStudentController extends Controller
                 'name.required' => 'حقل الاسم مطلوب',
                 'name.max' => 'يجب ألا يتجاوز الاسم 255 حرفًا',
                 'student_number.required' => 'حقل رقم الطالب مطلوب',
-                'student_number.size' => 'رقم الطالب يجب أن يتكون من 6 أرقام',
+                'student_number.max' => 'رقم الطالب يجب ألا يتجاوز 15 أحرف',
                 'student_number.unique' => 'رقم الطالب موجود مسبقًا',
                 'parent_whatsapp.max' => 'يجب ألا يزيد حقل WhatsApp الرئيسي عن 15 حرفًا.',
                 'parent_whatsapp.required' => 'حقل رقم واتساب ولي الأمر مطلوب',
@@ -124,26 +114,18 @@ class TeacherStudentController extends Controller
     public function edit($id)
     {
         $teacherEmail = Auth::user()->email;
-
-
         $student = Student::select('id', 'name', 'student_number', 'class_id', 'parent_whatsapp', 'class_description', 'section_number', 'path')
             ->findOrFail($id);
 
-        $classes = ClassRoom::with(['teachers', 'students'])
-            ->whereHas('teachers', function ($query) use ($teacherEmail) {
-                $query->where('email', $teacherEmail);
-            })
-            ->select('id', 'name')
-            ->paginate(9999999999999);
+        $classes = ClassRoom::whereHas('teachers', function ($query) use ($teacherEmail) {
+            $query->where('email', $teacherEmail);
+        })
+            ->select('id', 'name', 'path', 'section_number')
+            ->get();
 
         return Inertia::render('Teachers/Dashboard/Students/Edit', [
             'student' => $student,
-            'classes' => $classes->map(function ($class) {
-                return [
-                    'id' => $class->id,
-                    'name' => $class->name,
-                ];
-            }),
+            'classes' => $classes,
         ]);
     }
 
@@ -152,7 +134,7 @@ class TeacherStudentController extends Controller
         try {
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'student_number' => ['required', 'string', 'size:6', 'unique:students,student_number,' . $id],
+                'student_number' => ['required', 'string', 'max:15', 'unique:students,student_number,' . $id],
                 'class_id' => ['required', 'exists:classes,id'],
                 'parent_whatsapp' => ['required', 'string', 'max:15'],
                 'class_description' => ['required', 'integer'],
@@ -162,7 +144,7 @@ class TeacherStudentController extends Controller
                 'name.required' => 'حقل الاسم مطلوب',
                 'name.max' => 'يجب ألا يتجاوز الاسم 255 حرفًا',
                 'student_number.required' => 'حقل رقم الطالب مطلوب',
-                'student_number.size' => 'رقم الطالب يجب أن يتكون من 6 أرقام',
+                'student_number.max' => 'رقم الطالب يجب ألا يتجاوز 15 أحرف',
                 'student_number.unique' => 'رقم الطالب موجود مسبقًا',
                 'parent_whatsapp.max' => 'يجب ألا يزيد حقل WhatsApp الرئيسي عن 15 حرفًا.',
                 'parent_whatsapp.required' => 'حقل رقم واتساب ولي الأمر مطلوب',

@@ -161,8 +161,9 @@ export const translations = {
     reassign_teachers: 'Reassign Teachers',
     teachers_reassigned_success: 'Teachers reassigned successfully',
     error_reassigning_teachers: 'An error occurred while reassigning teachers',
-    select_teachers_placeholder: 'اختر المعلمين...',
-    no_teachers_available: 'لا يوجد معلمون متاحون',
+    select_teachers_placeholder: 'Select teachers placeholder',
+    no_teachers_available: 'No teachers available',
+    send_document: 'Send Document',
   },
   ar: {
     MZ: 'مدارس مدينة زايد',
@@ -328,5 +329,6 @@ export const translations = {
     error_reassigning_teachers: 'حدث خطأ أثناء إعادة تعيين المعلمين',
     select_teachers_placeholder: 'اختر المعلمين...',
     no_teachers_available: 'لا يوجد معلمون متاحون',
+    send_document: 'إرسال مستند',
   },
 };
