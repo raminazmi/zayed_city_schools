@@ -143,10 +143,10 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
         let phone = row.parent_whatsapp.trim();
 
         if (phone.startsWith('0')) {
-            phone = '971' + phone.substring(1);
-        } else if (!phone.startsWith('+') && !phone.startsWith('00') && !phone.startsWith('971')) {
+            phone = '970' + phone.substring(1);
+        } else if (!phone.startsWith('+') && !phone.startsWith('00') && !phone.startsWith('970')) {
             if (/^(5|59)/.test(phone)) {
-                phone = `971${phone}`;
+                phone = `970${phone}`;
             }
         }
 
@@ -230,6 +230,16 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
                                         ringColor: 'ring-green-500',
                                         show: (row) => ![t.attendance_not_taken, t.present].includes(row.status.props.children),
                                         loading: (row) => sendingStatus[row.id],
+                                    },
+                                    {
+                                        label: t['send_document'],
+                                        onClick: (row) => sendDocument(row),
+                                        bgColor: 'bg-blue-500',
+                                        hoverColor: 'bg-blue-500',
+                                        ringColor: 'ring-blue-500',
+                                        show: (row) => true,
+                                        loading: (row) => sendingStatus[row.id]?.document,
+                                        disabled: (row) => sendingStatus[row.id]?.document,
                                     }
                                 ]}
                             />

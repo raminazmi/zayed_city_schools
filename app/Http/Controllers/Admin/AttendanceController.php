@@ -460,10 +460,10 @@ class AttendanceController extends Controller
         \Log::info('WhatsApp Notification Request:', $request->all());
 
         $validator = Validator::make($request->all(), [
-            'phone' => ['required', 'string', 'regex:/^(\+?971|0)?(5|59)\d{7,8}$/'],
+            'phone' => ['required', 'string', 'regex:/^(\+?970|0)?(5|59)\d{7,8}$/'],
             'message' => 'required|string|max:1000',
         ], [
-            'phone.regex' => 'يجب أن يبدأ رقم الهاتف بـ 971 أو 0 أو +971 متبوعاً بـ 5 أو 59'
+            'phone.regex' => 'يجب أن يبدأ رقم الهاتف بـ 970 أو 0 أو +970 متبوعاً بـ 5 أو 59'
         ]);
 
         if ($validator->fails()) {
@@ -537,11 +537,11 @@ class AttendanceController extends Controller
             $phone = substr($phone, 1);
         }
 
-        if (strpos($phone, '971') === 0) {
+        if (strpos($phone, '970') === 0) {
             return $phone;
         }
         if (preg_match('/^(5|59)/', $phone)) {
-            return '971' . $phone;
+            return '970' . $phone;
         }
         return $phone;
     }
@@ -552,12 +552,12 @@ class AttendanceController extends Controller
         \Log::info('WhatsApp Document Request:', $request->all());
 
         $validator = Validator::make($request->all(), [
-            'phone' => ['required', 'string', 'regex:/^(\+?971|0)?(5|59)\d{7,8}$/'],
+            'phone' => ['required', 'string', 'regex:/^(\+?970|0)?(5|59)\d{7,8}$/'],
             'document' => 'required|url',
             'filename' => 'required|string',
             'caption' => 'nullable|string|max:1000',
         ], [
-            'phone.regex' => 'يجب أن يبدأ رقم الهاتف بـ 971 أو 0 أو +971 متبوعاً بـ 5 أو 59',
+            'phone.regex' => 'يجب أن يبدأ رقم الهاتف بـ 970 أو 0 أو +970 متبوعاً بـ 5 أو 59',
             'document.url' => 'يجب أن يكون رابط المستند صالحاً',
         ]);
 
@@ -575,10 +575,15 @@ class AttendanceController extends Controller
                 throw new \Exception('UltraMSG token not configured');
             }
 
-            $client = new \GuzzleHttp\Client([
-                'timeout' => 20,
-                'verify' => false
-            ]);
+            // Check file size before sending
+            $client = new \GuzzleHttp\Client(['verify' => false]);
+            $headResponse = $client->head($request->document);
+            $contentLength = $headResponse->getHeader('Content-Length')[0] ?? 0;
+            $maxSize = 100 * 1024 * 1024; // 100 MB in bytes
+
+            if ($contentLength > $maxSize) {
+                throw new \Exception('حجم المستند يتجاوز الحد المسموح (100 ميغابايت)');
+            }
 
             $response = $client->post('https://api.ultramsg.com/' . env('ULTRAMSG_INSTANCE_ID') . '/messages/document', [
                 'form_params' => [

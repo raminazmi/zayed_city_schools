@@ -89,10 +89,10 @@ export default function TeacherAttendanceViewPage({ auth, classroom, attendance,
         let phone = row.parent_whatsapp.trim();
 
         if (phone.startsWith('0')) {
-            phone = '971' + phone.substring(1);
-        } else if (!phone.startsWith('+') && !phone.startsWith('00') && !phone.startsWith('971')) {
+            phone = '970' + phone.substring(1);
+        } else if (!phone.startsWith('+') && !phone.startsWith('00') && !phone.startsWith('970')) {
             if (/^(5|59)/.test(phone)) {
-                phone = `971${phone}`;
+                phone = `970${phone}`;
             }
         }
 
