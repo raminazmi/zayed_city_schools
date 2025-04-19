@@ -19,7 +19,7 @@ export default function AttendancePage({ auth, classes }) {
 
     const [showDateModal, setShowDateModal] = useState(false);
     const [selectedClass, setSelectedClass] = useState(null);
-    const [attendanceDate, setAttendanceDate] = useState('');
+    const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
     const [showExportModal, setShowExportModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
 
