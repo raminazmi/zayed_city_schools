@@ -377,10 +377,10 @@ class TeacherAttendanceController extends Controller
         \Log::info('WhatsApp Notification Request:', $request->all());
 
         $validator = Validator::make($request->all(), [
-            'phone' => ['required', 'string', 'regex:/^(\+?970|0)?(5|59)\d{7,8}$/'],
+            'phone' => ['required', 'string', 'regex:/^(\+|00)?(\d{1,4})?(5|59)\d{7,8}$/'],
             'message' => 'required|string|max:1000',
         ], [
-            'phone.regex' => 'يجب أن يبدأ رقم الهاتف بـ 970 أو 0 أو +970 متبوعاً بـ 5 أو 59'
+            'phone.regex' => 'يجب أن يبدأ رقم الهاتف بـ + أو 00 متبوعاً برمز دولة (اختياري) ثم 5 أو 59'
         ]);
 
         if ($validator->fails()) {
@@ -450,13 +450,8 @@ class TeacherAttendanceController extends Controller
         $phone = preg_replace('/[^0-9]/', '', $phone);
         if (strpos($phone, '00') === 0) {
             $phone = substr($phone, 2);
-        } elseif (strpos($phone, '+') === 0) {
-            $phone = substr($phone, 1);
         }
 
-        if (strpos($phone, '970') === 0) {
-            return $phone;
-        }
         if (preg_match('/^(5|59)/', $phone)) {
             return '970' . $phone;
         }

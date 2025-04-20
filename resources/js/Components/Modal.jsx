@@ -2,8 +2,8 @@ import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { useSelector } from "react-redux";
 
-export default function Modal({ children, show = false, maxWidth = '2xl', closeable = true, onClose = () => {} }) {
-   const isDark = useSelector((state) => state.theme.darkMode === "dark");
+export default function Modal({ children, show = false, maxWidth = '2xl', closeable = true, onClose = () => { } }) {
+    const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
     const close = () => {
         if (closeable) {
@@ -49,7 +49,7 @@ export default function Modal({ children, show = false, maxWidth = '2xl', closea
                     leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 >
                     <Dialog.Panel
-                        className={` ${isDark ? 'bg-DarkBG3' : 'bg-LightBG3'} mb-6 rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full sm:mx-auto ${maxWidthClass}`}
+                        className={` ${isDark ? 'bg-DarkBG3' : 'bg-LightBG3'} mb-6 rounded-lg overflow-hidden shadow-xl transform transition-all w-full mx-auto ${maxWidthClass}`}
                     >
                         {children}
                     </Dialog.Panel>

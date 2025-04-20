@@ -88,9 +88,6 @@ class TeacherStudentController extends Controller
                 'class_id' => ['required', 'exists:classes,id'],
                 'parent_whatsapp' => ['required', 'string', 'max:15', 'regex:/^[0-9]{6,}$/'],
                 'country_code' => ['required', 'string', 'regex:/^\+[0-9]{1,3}$/'],
-                'class_description' => ['required', 'integer'],
-                'section_number' => ['nullable', 'string'],
-                'path' => ['nullable', 'string'],
             ], [
                 'name.required' => 'حقل الاسم مطلوب',
                 'name.max' => 'يجب ألا يتجاوز الاسم 255 حرفًا',
@@ -104,16 +101,25 @@ class TeacherStudentController extends Controller
                 'country_code.regex' => 'مقدمة الدولة يجب أن تبدأ بـ + متبوعة بـ 1-3 أرقام (مثل +965)',
                 'class_id.required' => 'حقل الصف مطلوب',
                 'class_id.exists' => 'الصف المحدد غير موجود',
-                'class_description.required' => 'حقل وصف الصف مطلوب',
-                'class_description.integer' => 'حقل وصف الصف يجب أن يكون رقماً',
             ]);
+
+            // جلب الصف المختار
+            $classroom = ClassRoom::findOrFail($validated['class_id']);
 
             // دمج country_code مع parent_whatsapp
             $phone = $this->formatPhoneNumber($validated['country_code'], $validated['parent_whatsapp']);
-            $validated['parent_whatsapp'] = $phone;
-            unset($validated['country_code']);
 
-            Student::create($validated);
+            // إنشاء الطالب مع القيم المستمدة من الصف
+            Student::create([
+                'name' => $validated['name'],
+                'student_number' => $validated['student_number'],
+                'class_id' => $validated['class_id'],
+                'class_description' => $classroom->class_description,
+                'section_number' => $classroom->section_number,
+                'path' => $classroom->path,
+                'parent_whatsapp' => $phone,
+            ]);
+
             return Inertia::location("/teacher/dashboard/students/{$validated['class_id']}/view");
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->errors());
@@ -147,9 +153,6 @@ class TeacherStudentController extends Controller
                 'class_id' => ['required', 'exists:classes,id'],
                 'parent_whatsapp' => ['required', 'string', 'max:15', 'regex:/^[0-9]{6,}$/'],
                 'country_code' => ['required', 'string', 'regex:/^\+[0-9]{1,3}$/'],
-                'class_description' => ['required', 'integer'],
-                'section_number' => ['nullable', 'string'],
-                'path' => ['nullable', 'string'],
             ], [
                 'name.required' => 'حقل الاسم مطلوب',
                 'name.max' => 'يجب ألا يتجاوز الاسم 255 حرفًا',
@@ -163,24 +166,27 @@ class TeacherStudentController extends Controller
                 'country_code.regex' => 'مقدمة الدولة يجب أن تبدأ بـ + متبوعة بـ 1-3 أرقام (مثل +965)',
                 'class_id.required' => 'حقل الصف مطلوب',
                 'class_id.exists' => 'الصف المحدد غير موجود',
-                'class_description.required' => 'حقل وصف الصف مطلوب',
-                'class_description.integer' => 'حقل وصف الصف يجب أن يكون رقماً',
             ]);
 
-            // دمج country_code مع parent_whatsapp
+            $classroom = ClassRoom::findOrFail($validated['class_id']);
             $phone = $this->formatPhoneNumber($validated['country_code'], $validated['parent_whatsapp']);
-            $validated['parent_whatsapp'] = $phone;
-            unset($validated['country_code']);
-
             $student = Student::findOrFail($id);
-            $student->update($validated);
+            $student->update([
+                'name' => $validated['name'],
+                'student_number' => $validated['student_number'],
+                'class_id' => $validated['class_id'],
+                'class_description' => $classroom->class_description,
+                'section_number' => $classroom->section_number,
+                'path' => $classroom->path,
+                'parent_whatsapp' => $phone,
+            ]);
+
             session()->flash('success', 'تم تحديث الطالب بنجاح');
             return Inertia::location("/teacher/dashboard/students/{$validated['class_id']}/view");
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->errors());
         }
     }
-
     public function destroy($id)
     {
         $student = Student::findOrFail($id);

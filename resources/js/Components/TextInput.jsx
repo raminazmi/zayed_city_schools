@@ -34,7 +34,7 @@ export default forwardRef(function TextInput({ type = 'text', value, className =
                 ref={input}
             />
             {type === "tel" ? (
-                <div className={`absolute inset-y-0 ${language === 'ar' ? 'left-0 pl-3 ' : 'right-0 pr-3 '} flex items-center`}>
+                <div className={`absolute inset-y-0 ${language === 'ar' ? 'left-0 pl-3 ' : 'right-0 pr-3 '} flex items-center pt-3`}>
                     <PhoneIcon className="h-5 w-5 text-gray-400" />
                 </div>
             ) : type === "email" ? (

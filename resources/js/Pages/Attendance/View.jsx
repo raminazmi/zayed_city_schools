@@ -82,57 +82,33 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
         { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
-    const sendDocument = async (row) => {
-        if (!row.parent_whatsapp) {
-            toast.error('لا يوجد رقم هاتف مسجل لولي الأمر');
-            return;
-        }
-
+    const generateAndSendBehavioralReport = async (studentId) => {
         try {
-            setSendingStatus(prev => ({
-                ...prev,
-                [row.id]: { ...prev[row.id], document: true }
-            }));
-
-            const documentUrl = 'https://pdfobject.com/pdf/sample.pdf';
-            const filename = 'تقرير_الطالب.pdf';
-            const caption = `تقرير الطالب ${row.student_name}`;
-
-            const response = await axios.post('/admin/dashboard/attendance/send-whatsapp-document', {
-                phone: row.parent_whatsapp,
-                document: documentUrl,
-                filename: filename,
-                caption: caption
-            }, {
+            setSendingStatus(prev => ({ ...prev, [studentId]: true }));
+            const response = await axios.get(`/admin/dashboard/attendance/generate-and-send-behavioral-report/${studentId}`, {
                 headers: {
-                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                 },
                 timeout: 20000
             });
 
             if (response.data.status) {
-                toast.success(response.data.message || 'تم إرسال المستند بنجاح');
+                toast.success(response.data.message || 'تم إنشاء التقرير وإرساله بنجاح');
             } else {
-                throw new Error(response.data.message || 'فشل في إرسال المستند');
+                throw new Error(response.data.message || 'فشل في إنشاء التقرير وإرساله');
             }
         } catch (error) {
             let errorMsg = 'حدث خطأ غير متوقع';
-
             if (error.response) {
                 errorMsg = error.response.data.message ||
                     (error.response.data.error ? JSON.stringify(error.response.data.error) : errorMsg);
             } else if (error.message) {
                 errorMsg = error.message;
             }
-
-            toast.error(`حدث خطأ أثناء إرسال المستند: ${errorMsg}`);
+            toast.error(`حدث خطأ: ${errorMsg}`);
             console.error('Error details:', error);
         } finally {
-            setSendingStatus(prev => ({
-                ...prev,
-                [row.id]: { ...prev[row.id], document: false }
-            }));
+            setSendingStatus(prev => ({ ...prev, [studentId]: false }));
         }
     };
 
@@ -233,16 +209,16 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
                                         show: (row) => ![t.attendance_not_taken, t.present].includes(row.status.props.children),
                                         loading: (row) => sendingStatus[row.id],
                                     },
-                                    {
-                                        label: t['send_document'],
-                                        onClick: (row) => sendDocument(row),
-                                        bgColor: 'bg-blue-500',
-                                        hoverColor: 'bg-blue-500',
-                                        ringColor: 'ring-blue-500',
-                                        show: (row) => true,
-                                        loading: (row) => sendingStatus[row.id]?.document,
-                                        disabled: (row) => sendingStatus[row.id]?.document,
-                                    }
+                                    // {
+                                    //     label: t['generate_and_send_report'],
+                                    //     onClick: (row) => generateAndSendBehavioralReport(row.id),
+                                    //     bgColor: 'bg-blue-500',
+                                    //     hoverColor: 'bg-blue-500',
+                                    //     ringColor: 'ring-blue-500',
+                                    //     show: (row) => true,
+                                    //     loading: (row) => sendingStatus[row.id],
+                                    //     disabled: (row) => sendingStatus[row.id],
+                                    // }
                                 ]}
                             />
                         </div>

@@ -9,11 +9,14 @@ use App\Models\Teacher;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\AttendanceExport;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
+use Omaralalwi\Gpdf\Gpdf;
+use Omaralalwi\Gpdf\GpdfConfig;
 
 class AttendanceController extends Controller
 {
@@ -189,7 +192,6 @@ class AttendanceController extends Controller
         return response()->json($this->formatAttendanceStats($attendanceData, $period));
     }
 
-
     public function getAttendanceStatistics()
     {
         return response()->json([
@@ -348,7 +350,6 @@ class AttendanceController extends Controller
         return Excel::download(new AttendanceExport($attendances), 'attendance_report.xlsx');
     }
 
-
     public function exportALL(Request $request)
     {
         $class_id = $request->input('class_id');
@@ -385,7 +386,6 @@ class AttendanceController extends Controller
 
         return response()->json(['hasNullAttendance' => $hasNullAttendance]);
     }
-
 
     public function attendance($id, Request $request)
     {
@@ -460,10 +460,10 @@ class AttendanceController extends Controller
         \Log::info('WhatsApp Notification Request:', $request->all());
 
         $validator = Validator::make($request->all(), [
-            'phone' => ['required', 'string', 'regex:/^(\+?970|0)?(5|59)\d{7,8}$/'],
+            'phone' => ['required', 'string', 'regex:/^(\+?\d{1,4}|0)?(5|59)\d{7,8}$/'],
             'message' => 'required|string|max:1000',
         ], [
-            'phone.regex' => 'يجب أن يبدأ رقم الهاتف بـ 970 أو 0 أو +970 متبوعاً بـ 5 أو 59'
+            'phone.regex' => 'يجب أن يبدأ رقم الهاتف برمز دولي (مثل +966 أو 0) متبوعاً بـ 5 أو 59'
         ]);
 
         if ($validator->fails()) {
@@ -527,7 +527,6 @@ class AttendanceController extends Controller
         }
     }
 
-
     private function formatPhoneNumber($phone)
     {
         $phone = preg_replace('/[^0-9]/', '', $phone);
@@ -546,18 +545,17 @@ class AttendanceController extends Controller
         return $phone;
     }
 
-
     public function sendDocument(Request $request)
     {
         \Log::info('WhatsApp Document Request:', $request->all());
 
         $validator = Validator::make($request->all(), [
-            'phone' => ['required', 'string', 'regex:/^(\+?970|0)?(5|59)\d{7,8}$/'],
+            'phone' => ['required', 'string', 'regex:/^(\+?\d{1,3}|0)?(5|59)\d{7,8}$/'],
             'document' => 'required|url',
             'filename' => 'required|string',
             'caption' => 'nullable|string|max:1000',
         ], [
-            'phone.regex' => 'يجب أن يبدأ رقم الهاتف بـ 970 أو 0 أو +970 متبوعاً بـ 5 أو 59',
+            'phone.regex' => 'يجب أن يبدأ رقم الهاتف برمز دولي صالح أو 0 متبوعاً بـ 5 أو 59',
             'document.url' => 'يجب أن يكون رابط المستند صالحاً',
         ]);
 
@@ -575,11 +573,10 @@ class AttendanceController extends Controller
                 throw new \Exception('UltraMSG token not configured');
             }
 
-            // Check file size before sending
             $client = new \GuzzleHttp\Client(['verify' => false]);
             $headResponse = $client->head($request->document);
             $contentLength = $headResponse->getHeader('Content-Length')[0] ?? 0;
-            $maxSize = 100 * 1024 * 1024; // 100 MB in bytes
+            $maxSize = 100 * 1024 * 1024;
 
             if ($contentLength > $maxSize) {
                 throw new \Exception('حجم المستند يتجاوز الحد المسموح (100 ميغابايت)');
@@ -635,5 +632,155 @@ class AttendanceController extends Controller
                 'message' => 'حدث خطأ غير متوقع: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function generateAndSendBehavioralReport(Request $request, $studentId)
+    {
+        try {
+            // جلب بيانات الطالب
+            $student = Student::findOrFail($studentId);
+            if (!$student->parent_whatsapp) {
+                throw new \Exception('لا يوجد رقم هاتف مسجل لولي الأمر');
+            }
+
+            $classroom = $student->class;
+
+            if (!$classroom) {
+                throw new \Exception('الطالب غير مرتبط بفصل دراسي');
+            }
+
+            $attendanceRecords = Attendance::where('student_id', $studentId)
+                ->whereBetween('date', [$request->start_date ?? now()->startOfMonth(), $request->end_date ?? now()])
+                ->get();
+
+            // توليد محتوى HTML للتقرير
+            $html = view('reports.behavioral', [
+                'student' => $student,
+                'classroom' => $classroom,
+                'attendanceRecords' => $attendanceRecords,
+                'academicYear' => '2024/2025',
+                'date' => now()->format('Y-m-d'),
+            ])->render();
+
+            // إعدادات Gpdf
+            $defaultConfig = config('gpdf');
+            if (!$defaultConfig) {
+                throw new \Exception('إعدادات Gpdf غير متوفرة');
+            }
+
+            $config = new GpdfConfig($defaultConfig);
+            $gpdf = new Gpdf($config);
+            $pdfContent = $gpdf->generate($html);
+
+            // التأكد من وجود المجلد
+            $directory = 'reports';
+            if (!Storage::disk('public')->exists($directory)) {
+                Storage::disk('public')->makeDirectory($directory);
+            }
+
+            // حفظ الملف مؤقتًا
+            $fileName = 'behavioral_report_' . $studentId . '_' . now()->format('YmdHis') . '.pdf';
+            $filePath = $directory . '/' . $fileName;
+            Storage::disk('public')->put($filePath, $pdfContent);
+
+            // التحقق من وجود الملف
+            if (!Storage::disk('public')->exists($filePath)) {
+                throw new \Exception('فشل في إنشاء الملف المؤقت');
+            }
+
+            // الحصول على حجم الملف مباشرة
+            $contentLength = Storage::disk('public')->size($filePath);
+            $maxSize = 100 * 1024 * 1024; // 100 MB
+
+            if ($contentLength > $maxSize) {
+                throw new \Exception('حجم المستند يتجاوز الحد المسموح (100 ميغابايت)');
+            }
+
+            // إرسال المستند عبر WhatsApp
+            if (!env('ULTRAMSG_TOKEN')) {
+                throw new \Exception('UltraMSG token not configured');
+            }
+
+            $client = new \GuzzleHttp\Client(['verify' => false]);
+            // إضافة token كمعامل GET في URL
+            $url = 'https://api.ultramsg.com/' . env('ULTRAMSG_INSTANCE_ID') . '/messages/document?token=' . urlencode(env('ULTRAMSG_TOKEN'));
+
+            $response = $client->post($url, [
+                'multipart' => [
+                    [
+                        'name' => 'to',
+                        'contents' => $this->formatPhoneNumber($student->parent_whatsapp),
+                    ],
+                    [
+                        'name' => 'document',
+                        'contents' => $pdfContent,
+                        'filename' => $fileName,
+                    ],
+                    [
+                        'name' => 'filename',
+                        'contents' => $fileName,
+                    ],
+                    [
+                        'name' => 'caption',
+                        'contents' => 'تقرير سلوكي للطالب: ' . $student->name,
+                    ],
+                ],
+            ]);
+
+            $result = json_decode($response->getBody(), true);
+            \Log::info('UltraMSG Document API Response:', $result);
+
+            if (!isset($result['sent']) || $result['sent'] !== 'true') {
+                $errorMessage = isset($result['error']) ? $this->formatErrorMessage($result['error']) : 'Unknown error from UltraMSG API';
+                throw new \Exception($errorMessage);
+            }
+
+            // حذف الملف بعد الإرسال
+            Storage::disk('public')->delete($filePath);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم إنشاء التقرير وإرساله بنجاح عبر WhatsApp'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error generating and sending behavioral report: ' . $e->getMessage(), [
+                'studentId' => $studentId,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // محاولة حذف الملف إذا تم إنشاؤه
+            if (isset($filePath) && Storage::disk('public')->exists($filePath)) {
+                Storage::disk('public')->delete($filePath);
+            }
+
+            return response()->json([
+                'status' => false,
+                'message' => 'فشل في إنشاء التقرير وإرساله: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * دالة مساعدة لتحويل رسائل الخطأ من UltraMSG إلى سلسلة نصية
+     */
+    private function formatErrorMessage($error)
+    {
+        if (is_string($error)) {
+            return $error;
+        }
+
+        if (is_array($error)) {
+            $messages = [];
+            foreach ($error as $errorItem) {
+                if (is_string($errorItem)) {
+                    $messages[] = $errorItem;
+                } elseif (is_array($errorItem)) {
+                    $messages[] = implode(', ', array_values($errorItem));
+                }
+            }
+            return implode('; ', $messages);
+        }
+
+        return 'Unknown error';
     }
 }
