@@ -484,7 +484,7 @@ class AttendanceController extends Controller
                 'verify' => false
             ]);
 
-            $response = $client->post('https://api.ultramsg.com/' . env('ULTRAMSG_INSTANCE_ID', 'instance60138') . '/messages/chat', [
+            $response = $client->post('https://api.ultramsg.com/' . env('ULTRAMSG_INSTANCE_ID', 'instance114411') . '/messages/chat', [
                 'form_params' => [
                     'token' => env('ULTRAMSG_TOKEN'),
                     'to' => $this->formatPhoneNumber($request->phone),
