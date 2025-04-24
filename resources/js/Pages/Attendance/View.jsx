@@ -8,7 +8,7 @@ import { Head } from '@inertiajs/react';
 import PrimaryButton from '@/Components/PrimaryButton';
 import { router } from '@inertiajs/react';
 import { getStatusMessage } from '@/utils/messageTemplates';
-import { MessageCircleReply } from 'lucide-react';
+import { MessageCircleReply, Send } from 'lucide-react';
 import moment from 'moment';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
@@ -19,6 +19,7 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
     const language = useSelector((state) => state.language.current);
     const t = translations[language];
     const [sendingStatus, setSendingStatus] = React.useState({});
+    const [isSending, setIsSending] = React.useState(false);
 
     const dayNames = {
         Sunday: t["Sunday"],
@@ -42,16 +43,11 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
 
     const getStatusClass = (status) => {
         switch (status) {
-            case 'present':
-                return 'bg-green-500 text-white';
-            case 'late':
-                return 'bg-yellow-500 text-white';
-            case 'absent':
-                return 'bg-red-500 text-white';
-            case 'not_taken':
-                return 'bg-gray-400 text-white';
-            default:
-                return '';
+            case 'present': return 'bg-green-500 text-white';
+            case 'late': return 'bg-yellow-500 text-white';
+            case 'absent': return 'bg-red-500 text-white';
+            case 'not_taken': return 'bg-gray-400 text-white';
+            default: return '';
         }
     };
 
@@ -66,6 +62,7 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
     const tableData = attendance.map(record => ({
         id: record.student_id,
         student_name: record.student_name || t.unknown_student,
+        original_status: record.status,
         status: (
             <span className={`px-2 py-1 rounded ${getStatusClass(record.status)}`}>
                 {record.status === 'not_taken' ? t.attendance_not_taken : t[record.status]}
@@ -77,63 +74,31 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
     const sortedTableData = [...tableData].sort((a, b) =>
         a.student_name.localeCompare(b.student_name, 'ar')
     );
+
     const breadcrumbItems = [
         { label: t.attendance, href: '/admin/dashboard/attendance' },
         { label: classroom.name + ' / ' + classroom.path + ' / ' + 'شعبة ' + classroom.section_number },
     ];
 
-    const generateAndSendBehavioralReport = async (studentId) => {
-        try {
-            setSendingStatus(prev => ({ ...prev, [studentId]: true }));
-            const response = await axios.get(`/admin/dashboard/attendance/generate-and-send-behavioral-report/${studentId}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-                },
-                timeout: 20000
-            });
-
-            if (response.data.status) {
-                toast.success(response.data.message || 'تم إنشاء التقرير وإرساله بنجاح');
-            } else {
-                throw new Error(response.data.message || 'فشل في إنشاء التقرير وإرساله');
-            }
-        } catch (error) {
-            let errorMsg = 'حدث خطأ غير متوقع';
-            if (error.response) {
-                errorMsg = error.response.data.message ||
-                    (error.response.data.error ? JSON.stringify(error.response.data.error) : errorMsg);
-            } else if (error.message) {
-                errorMsg = error.message;
-            }
-            toast.error(`حدث خطأ: ${errorMsg}`);
-            console.error('Error details:', error);
-        } finally {
-            setSendingStatus(prev => ({ ...prev, [studentId]: false }));
-        }
-    };
-
     const sendNotification = async (row) => {
         if (!row.parent_whatsapp) {
-            toast.error('لا يوجد رقم هاتف مسجل لولي الأمر');
-            return;
+            toast.error(t['no_parent_phone'] || 'لا يوجد رقم هاتف مسجل لولي الأمر');
+            return { success: false, error: 'لا يوجد رقم هاتف مسجل لولي الأمر' };
         }
 
         let phone = row.parent_whatsapp.trim();
-
         if (phone.startsWith('0')) {
-            phone = '970' + phone.substring(1);
-        } else if (!phone.startsWith('+') && !phone.startsWith('00') && !phone.startsWith('970')) {
+            phone = '971' + phone.substring(1);
+        } else if (!phone.startsWith('+') && !phone.startsWith('00') && !phone.startsWith('971')) {
             if (/^(5|59)/.test(phone)) {
-                phone = `970${phone}`;
+                phone = `971${phone}`;
             }
         }
 
-        const statusText = React.Children.toArray(row.status.props.children).join(' ');
-        const message = getStatusMessage(statusText, row.student_name, formattedDate, row.notes);
+        const message = getStatusMessage(row.original_status, row.student_name, formattedDate, row.notes, language);
 
         try {
             setSendingStatus(prev => ({ ...prev, [row.id]: true }));
-
             const response = await axios.post('/admin/dashboard/attendance/send-whatsapp-notification', {
                 phone: phone,
                 message: message
@@ -146,18 +111,40 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
             });
 
             if (response.data.status) {
-                toast.success('تم إرسال التنبيه بنجاح');
+                toast.success(t['notification_sent'] || 'تم إرسال التنبيه بنجاح');
+                return { success: true };
             } else {
                 throw new Error(response.data.message || 'فشل في إرسال التنبيه');
             }
         } catch (error) {
-            const errorMsg = error.response?.data?.message ||
-                error.message ||
-                'حدث خطأ غير متوقع أثناء الإرسال';
-            toast.error(`حدث خطأ أثناء إرسال التنبيه: ${errorMsg}`);
-            console.error('Error details:', error);
+            const errorMsg = error.response?.data?.message || error.message || 'حدث خطأ غير متوقع أثناء الإرسال';
+            toast.error(`${t['notification_error'] || 'حدث خطأ أثناء إرسال التنبيه'}: ${errorMsg}`);
+            return { success: false, error: errorMsg };
         } finally {
             setSendingStatus(prev => ({ ...prev, [row.id]: false }));
+        }
+    };
+
+    const sendAllNotifications = async () => {
+        setIsSending(true);
+        const studentsToNotify = sortedTableData.filter(row =>
+            row.original_status === 'absent' || row.original_status === 'late'
+        );
+
+        if (studentsToNotify.length === 0) {
+            toast.info(t['no_students_to_notify'] || 'لا يوجد طلاب غائبين أو متأخرين لإرسال الرسائل لهم');
+            setIsSending(false);
+            return;
+        }
+
+        const results = await Promise.all(studentsToNotify.map(student => sendNotification(student)));
+        setIsSending(false);
+
+        const failed = results.filter(r => !r.success);
+        if (failed.length > 0) {
+            toast.error(`${t['failed_notifications'] || 'فشل في إرسال'} ${failed.length} ${t['messages'] || 'رسالة'}: ${failed.map(f => f.error).join(', ')}`);
+        } else {
+            toast.success(t['all_notifications_sent'] || 'تم إرسال جميع الرسائل بنجاح');
         }
     };
 
@@ -191,6 +178,14 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
                             </div>
                         </div>
                         <div className="mx-auto px-4 sm:px-6 md:px-14 mt-6">
+                            <PrimaryButton
+                                className="mb-4 text-white px-4 py-2 rounded !bg-green-500 hover:bg-green-600 ring-green-500"
+                                onClick={sendAllNotifications}
+                                disabled={isSending}
+                            >
+                                <Send className="w-4 h-4 mx-1" />
+                                {isSending ? t['sending_in_progress'] : t['notify_parents']}
+                            </PrimaryButton>
                             <DataTable
                                 columns={columns}
                                 data={sortedTableData}
@@ -209,16 +204,6 @@ export default function AttendanceViewPage({ auth, classroom, attendance, date }
                                         show: (row) => ![t.attendance_not_taken, t.present].includes(row.status.props.children),
                                         loading: (row) => sendingStatus[row.id],
                                     },
-                                    // {
-                                    //     label: t['generate_and_send_report'],
-                                    //     onClick: (row) => generateAndSendBehavioralReport(row.id),
-                                    //     bgColor: 'bg-blue-500',
-                                    //     hoverColor: 'bg-blue-500',
-                                    //     ringColor: 'ring-blue-500',
-                                    //     show: (row) => true,
-                                    //     loading: (row) => sendingStatus[row.id],
-                                    //     disabled: (row) => sendingStatus[row.id],
-                                    // }
                                 ]}
                             />
                         </div>
