@@ -466,7 +466,7 @@ class TeacherAttendanceController extends Controller
         }
 
         if (preg_match('/^(5|59)/', $phone)) {
-            return '970' . $phone;
+            return '971' . $phone;
         }
         return $phone;
     }
