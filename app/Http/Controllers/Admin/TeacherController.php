@@ -63,7 +63,7 @@ class TeacherController extends Controller
                 'is_first_login' => true,
             ]);
 
-            return Inertia::location(route('admin.teachers.index'));
+            return Inertia::render('Teachers/Create');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->errors());
         }

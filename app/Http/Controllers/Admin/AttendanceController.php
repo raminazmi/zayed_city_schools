@@ -39,6 +39,7 @@ class AttendanceController extends Controller
 
     public function index()
     {
+        $today = now()->toDateString();
         $classes = ClassRoom::with('teachers:id,name')
             ->withCount('students')
             ->whereNull('deleted_at')
@@ -56,7 +57,11 @@ class AttendanceController extends Controller
             ->orderBy('section_number', 'asc')
             ->paginate(9999999999999);
 
-        $classesData = $classes->map(function ($class) {
+        $classesData = $classes->map(function ($class) use ($today) {
+            $hasAttendanceToday = Attendance::where('class_id', $class->id)
+                ->where('date', $today)
+                ->exists();
+
             return [
                 'id' => $class->id,
                 'class_name' => $class->name,
@@ -70,6 +75,7 @@ class AttendanceController extends Controller
                     return ['id' => $teacher->id, 'name' => $teacher->name];
                 })->toArray(),
                 'teacher_name' => $class->teachers->pluck('name')->join(', ') ?: '-',
+                'has_attendance_today' => $hasAttendanceToday,
             ];
         });
 

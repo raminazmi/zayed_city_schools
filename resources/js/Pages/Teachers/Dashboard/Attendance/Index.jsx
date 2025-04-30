@@ -32,6 +32,52 @@ export default function AttendancePage({ auth, classes }) {
         { key: 'class_name', label: t['class_name'], sortable: true },
         { key: 'students_count', label: t['numbers_of_students'], sortable: true },
         { key: 'section', label: t['section'], sortable: true },
+        {
+            key: 'has_attendance_today',
+            label: t['attendance_today'],
+            sortable: false,
+            render: (value) => (
+                <span
+                    className={`inline-flex items-center px-2.5 py-1 gap-1 rounded-full text-xs font-medium transition-colors duration-200 ${value
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        }`}
+                >
+                    {value ? (
+                        <svg
+                            className="w-4 h-4 mr-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M5 13l4 4L19 7"
+                            />
+                        </svg>
+                    ) : (
+                        <svg
+                            className="w-4 h-4 mr-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
+                    )}
+                    {value ? t['taken'] : t['not_taken']}
+                </span>
+            )
+        },
     ];
 
     const tableData = classes.map(classItem => ({
@@ -39,6 +85,7 @@ export default function AttendancePage({ auth, classes }) {
         class_name: classItem.class_name,
         students_count: classItem.students_count,
         section: classItem.section,
+        has_attendance_today: classItem.has_attendance_today,
     }));
 
     const handleAttendance = (row) => {
@@ -98,7 +145,7 @@ export default function AttendancePage({ auth, classes }) {
                         <div className="mx-auto px-4 sm:px-6 md:px-14">
                             <Breadcrumb items={breadcrumbItems} />
                             <div className='flex justify-between items-center'>
-                                <h1 className="text-2xl sm:text-3xl  mt-3 font-bold text-primaryColor">
+                                <h1 className="text-2xl sm:text-3xl mt-3 font-bold text-primaryColor">
                                     {t['attendance']}
                                 </h1>
                             </div>
@@ -183,7 +230,6 @@ export default function AttendancePage({ auth, classes }) {
                 </div>
             </Modal>
 
-
             <Modal show={showViewModal} onClose={() => setShowViewModal(false)}>
                 <div className="p-6">
                     <InputLabel value={t['enter_attendance_date']} />
@@ -203,7 +249,6 @@ export default function AttendancePage({ auth, classes }) {
                     </div>
                 </div>
             </Modal>
-
         </AuthenticatedLayout>
     );
 }

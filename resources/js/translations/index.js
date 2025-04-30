@@ -173,6 +173,11 @@ export const translations = {
     messages: 'messages',
     sending_in_progress: 'Sending in progress...',
     notify_parents: 'Notify Parents',
+    attendance_today: 'Attendance Today',
+    taken: 'Taken',
+    not_taken: 'not Taken',
+    teacher_added_successfully: 'Teacher added successfully',
+    failed_to_add_teacher: 'Failed to add teacher'
   },
   ar: {
     MZ: 'مدارس مدينة زايد',
@@ -348,5 +353,10 @@ export const translations = {
     messages: 'رسالة',
     sending_in_progress: 'جاري الإرسال...',
     notify_parents: 'تنبيه أولياء الأمور',
+    attendance_today: 'حضور اليوم',
+    taken: 'تم تعيين الحضور اليوم',
+    not_taken: 'لم يتم تعيين الحضور	',
+    teacher_added_successfully: 'تم إضافة المعلم بنجاح!',
+    failed_to_add_teacher: 'فشل في إضافة المعلم، يرجى المحاولة مرة أخرى.'
   },
 };

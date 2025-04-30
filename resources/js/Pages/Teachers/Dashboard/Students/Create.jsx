@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Breadcrumb from '@/Components/Breadcrumb';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -10,9 +10,11 @@ import { translations } from '@translations';
 import { useSelector } from 'react-redux';
 import { FiPhone } from 'react-icons/fi';
 import countriesData from '../../../../countries.json';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function TeacherAddStudentPage({ auth, classes, classId }) {
-    const { data, setData, post, errors, processing } = useForm({
+    const { data, setData, post, errors, processing, reset } = useForm({
         name: '',
         student_number: '',
         class_id: classId,
@@ -20,8 +22,29 @@ export default function TeacherAddStudentPage({ auth, classes, classId }) {
         country_code: '+965',
     });
 
+    const { props } = usePage();
     const [countries] = React.useState(countriesData);
     const [filteredCountries] = React.useState(countriesData);
+
+    const isDark = useSelector((state) => state.theme.darkMode === "dark");
+    const language = useSelector((state) => state.language.current);
+    const t = translations[language];
+
+    // عرض إشعار النجاح إذا تم تمرير رسالة نجاح من الخادم
+    React.useEffect(() => {
+        if (props.success) {
+            toast.success(props.success, {
+                position: "top-right",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                theme: isDark ? 'dark' : 'light',
+            });
+            reset(); // إعادة تعيين النموذج بعد النجاح
+        }
+    }, [props.success, isDark, reset]);
 
     const handlePhoneChange = (e) => {
         const value = e.target.value.replace(/[^0-9]/g, '').replace(/^0/, '');
@@ -32,23 +55,42 @@ export default function TeacherAddStudentPage({ auth, classes, classId }) {
         setData('country_code', e.target.value);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!data.parent_whatsapp) {
-            return alert('يرجى إدخال رقم واتساب ولي الأمر');
+            toast.error(t['parent_whatsapp_required'], {
+                position: "top-right",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                theme: isDark ? 'dark' : 'light',
+            });
+            return;
         }
 
-        post('/teacher/dashboard/students', {
-            preserveScroll: true,
-            onError: (errors) => {
-                console.log(errors);
-            },
-        });
+        try {
+            await post('/teacher/dashboard/students', {
+                preserveScroll: true,
+                onError: (errors) => {
+                    throw new Error('Validation errors occurred');
+                },
+            });
+        } catch (error) {
+            console.log('Error:', error);
+            toast.error(t['failed_to_add_student'], {
+                position: "top-right",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                theme: isDark ? 'dark' : 'light',
+            });
+        }
     };
 
-    const isDark = useSelector((state) => state.theme.darkMode === "dark");
-    const language = useSelector((state) => state.language.current);
-    const t = translations[language];
     const classroom = classes.find(cls => cls.id == classId) || {};
     const breadcrumbItems = [
         { label: t['student_management'], href: '/teacher/dashboard/students' },
@@ -132,7 +174,7 @@ export default function TeacherAddStudentPage({ auth, classes, classId }) {
                                                     name="countryCode"
                                                     value={data.country_code}
                                                     onChange={handleCountryCodeChange}
-                                                    className={`w-1/3  focus:border-primaryColor focus:ring-primaryColor rounded-md shadow-sm border-none h-[45px] mt-3 ${isDark ? 'bg-DarkBG1 text-TextLight' : 'bg-LightBG1 text-TextDark border-gray-400 border-[0.1px]'}`}
+                                                    className={`w-1/3 focus:border-primaryColor focus:ring-primaryColor rounded-md shadow-sm border-none h-[45px] mt-3 ${isDark ? 'bg-DarkBG1 text-TextLight' : 'bg-LightBG1 text-TextDark border-gray-400 border-[0.1px]'}`}
                                                 >
                                                     {filteredCountries.map((country) => (
                                                         <option key={country.code} value={country.code}>
@@ -166,6 +208,7 @@ export default function TeacherAddStudentPage({ auth, classes, classId }) {
                     </div>
                 </main>
             </div>
+            <ToastContainer />
         </AuthenticatedLayout>
     );
 }

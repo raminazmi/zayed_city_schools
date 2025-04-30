@@ -8,6 +8,8 @@ import TextInput from '@/Components/TextInput';
 import InputError from '@/Components/InputError';
 import { translations } from '@translations';
 import { useSelector } from 'react-redux';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function AddTeacherPage({ auth }) {
     const { data, setData, post, errors, processing } = useForm({
@@ -17,19 +19,36 @@ export default function AddTeacherPage({ auth }) {
         grades: '',
     });
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        post('/admin/dashboard/teachers', {
-            preserveScroll: true,
-            onError: (errors) => {
-                console.log(errors);
-            },
-        });
-    };
-
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
     const t = translations[language];
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await post('/admin/dashboard/teachers', { preserveScroll: true });
+            toast.success(t['teacher_added_successfully'], {
+                position: "top-right",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                theme: isDark ? 'dark' : 'light',
+            });
+        } catch (error) {
+            toast.error(t['failed_to_add_teacher'], {
+                position: "top-right",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                theme: isDark ? 'dark' : 'light',
+            });
+        }
+    };
+
     const breadcrumbItems = [
         { label: t['teachers_management'], href: '/admin/dashboard/teachers' },
         { label: t['add_teacher'] }
@@ -114,6 +133,7 @@ export default function AddTeacherPage({ auth }) {
                     </div>
                 </main>
             </div>
+            <ToastContainer />
         </AuthenticatedLayout>
     );
 }

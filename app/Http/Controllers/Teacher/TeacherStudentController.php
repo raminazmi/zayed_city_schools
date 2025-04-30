@@ -120,9 +120,21 @@ class TeacherStudentController extends Controller
                 'parent_whatsapp' => $phone,
             ]);
 
-            return Inertia::location("/teacher/dashboard/students/{$validated['class_id']}/view");
+            // جلب بيانات الفصول لإعادتها إلى صفحة Create
+            $teacherEmail = Auth::user()->email;
+            $classes = ClassRoom::whereHas('teachers', function ($query) use ($teacherEmail) {
+                $query->where('email', $teacherEmail);
+            })
+                ->select('id', 'name', 'path', 'section_number')
+                ->get();
+
+            return Inertia::render('Teachers/Dashboard/Students/Create', [
+                'classes' => $classes,
+                'classId' => $validated['class_id'],
+                'success' => 'تم إضافة الطالب بنجاح!',
+            ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return back()->withErrors($e->errors());
+            return back()->withErrors($e->errors())->withInput();
         }
     }
 
@@ -187,6 +199,7 @@ class TeacherStudentController extends Controller
             return back()->withErrors($e->errors());
         }
     }
+
     public function destroy($id)
     {
         $student = Student::findOrFail($id);

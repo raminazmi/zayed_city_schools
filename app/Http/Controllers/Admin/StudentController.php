@@ -122,13 +122,18 @@ class StudentController extends Controller
                 'parent_whatsapp' => $phone,
             ]);
 
-            return Inertia::location("/admin/dashboard/students/{$validated['class_id']}/view");
+            // جلب بيانات الفصول لإعادتها إلى صفحة Create
+            $classes = ClassRoom::select('id', 'name', 'path', 'section_number')->get();
+
+            return Inertia::render('Students/Create', [
+                'classes' => $classes,
+                'classId' => $validated['class_id'],
+                'success' => 'تم إضافة الطالب بنجاح!',
+            ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return back()->withErrors($e->errors());
+            return back()->withErrors($e->errors())->withInput();
         }
     }
-
-
 
     public function edit($id)
     {

@@ -16,7 +16,7 @@ export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
-        role: '',
+        role: 'teacher',
         remember: false,
     });
 
@@ -45,9 +45,8 @@ export default function Login({ status, canResetPassword }) {
                         className={`w-[100%] focus:border-primaryColor focus:ring-primaryColor rounded-md shadow-sm border-none h-[45px] mt-3 ${isDark ? 'bg-DarkBG1 text-TextLight' : 'bg-LightBG2 text-TextDark border-gray-400 border-[0.1px]'} `}
                         onChange={(e) => setData('role', e.target.value)}
                     >
-                        <option value="" disabled>{t['select_role']}</option>
-                        <option value="admin">{t['admin']}</option>
                         <option value="teacher">{t['teacher']}</option>
+                        <option value="admin">{t['admin']}</option>
                     </select>
                     <InputError message={errors.role} className="mt-2" />
                 </div>

@@ -37,6 +37,7 @@ class TeacherAttendanceController extends Controller
 
     public function index()
     {
+        $today = now()->toDateString();
         $teacherEmail = Auth::user()->email;
         $classes = ClassRoom::with('teachers:id,name')
             ->whereHas('teachers', function ($query) use ($teacherEmail) {
@@ -65,13 +66,25 @@ class TeacherAttendanceController extends Controller
             ]);
         }
 
-        $classesData = $classes->map(function ($class) {
+        $classesData = $classes->map(function ($class) use ($today) {
+            $hasAttendanceToday = Attendance::where('class_id', $class->id)
+                ->where('date', $today)
+                ->exists();
+
             return [
                 'id' => $class->id,
                 'class_name' => $class->name,
-                'teacher_name' => $class->teachers->pluck('name')->join(', ') ?: '-',
                 'section' => $class->section,
+                'created_at' => $class->created_at,
+                'class_description' => $class->class_description,
+                'section_number' => $class->section_number,
+                'path' => $class->path,
                 'students_count' => $class->students->count(),
+                'teachers' => $class->teachers->map(function ($teacher) {
+                    return ['id' => $teacher->id, 'name' => $teacher->name];
+                })->toArray(),
+                'teacher_name' => $class->teachers->pluck('name')->join(', ') ?: '-',
+                'has_attendance_today' => $hasAttendanceToday,
             ];
         });
 
@@ -357,6 +370,7 @@ class TeacherAttendanceController extends Controller
             return response()->json(['message' => 'Failed to save attendance: ' . $e->getMessage()], 500);
         }
     }
+
     public function attendance($id, Request $request)
     {
         $url = $request->fullUrl();
@@ -443,7 +457,6 @@ class TeacherAttendanceController extends Controller
             ], 500);
         }
     }
-
 
     private function formatPhoneNumber($phone)
     {
