@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class TeacherStudentController extends Controller
 {
@@ -61,7 +62,41 @@ class TeacherStudentController extends Controller
             'students' => $students,
             'classes' => $classes,
             'classId' => $classId,
+            'query' => $request->input('query', '')
         ]);
+    }
+
+    public function search(Request $request)
+    {
+        $teacherEmail = Auth::user()->email;
+        $query = trim($request->input('query')); // Trim spaces from the query
+        Log::info('Teacher search initiated', [
+            'teacher_email' => $teacherEmail,
+            'query' => $query
+        ]);
+
+        // Build the query to find a student in the teacher's classes using the 'class' relationship
+        $student = Student::whereHas('class.teachers', function ($queryBuilder) use ($teacherEmail) {
+            $queryBuilder->where('email', $teacherEmail);
+        })
+            ->where(function ($queryBuilder) use ($query) {
+                // Normalize the query and database field for Arabic text
+                $queryBuilder->whereRaw('TRIM(LOWER(name)) LIKE ?', ['%' . mb_strtolower($query, 'UTF-8') . '%'])
+                    ->orWhereRaw('TRIM(LOWER(student_number)) LIKE ?', ['%' . mb_strtolower($query, 'UTF-8') . '%']);
+            })
+            ->first();
+
+        if ($student) {
+            Log::info('Student found', [
+                'student_id' => $student->id,
+                'student_name' => $student->name,
+                'class_id' => $student->class_id
+            ]);
+            return response()->json(['class_id' => $student->class_id]);
+        } else {
+            Log::warning('Student not found', ['query' => $query]);
+            return response()->json(['error' => 'Student not found'], 404);
+        }
     }
 
     public function create(Request $request)
@@ -210,17 +245,11 @@ class TeacherStudentController extends Controller
 
     private function formatPhoneNumber($countryCode, $number)
     {
-        // إزالة أي أحرف غير رقمية من الرقم
         $number = preg_replace('/[^0-9]/', '', $number);
-        // إزالة أي أحرف غير رقمية أو + من المقدمة
         $countryCode = preg_replace('/[^0-9+]/', '', $countryCode);
-
-        // إذا كان الرقم أو المقدمة فارغين، أعد null
         if (empty($number) || empty($countryCode)) {
             return null;
         }
-
-        // دمج المقدمة مع الرقم
         return $countryCode . $number;
     }
 }

@@ -15,6 +15,7 @@ export default function DataTable({
   onEdit,
   onDelete,
   onView,
+  onGenerateReport, // إضافة الخاصية الجديدة
   searchable = true,
   filterable = true,
   customActions,
@@ -117,7 +118,7 @@ export default function DataTable({
         </div>
 
         <div className="overflow-x-auto">
-          <table className={`min-w-full divide-y ${isDark ? 'divide-DarkBG1 ' : 'divide-LightBG3'}`}>
+          <table className={`min-w-full divide-y ${isDark ? 'divide-DarkBG1' : 'divide-LightBG3'}`}>
             <TableHeader
               columns={columns}
               selectable={selectable}
@@ -128,11 +129,11 @@ export default function DataTable({
               totalRows={paginatedData.length}
             />
             <tbody
-              className={`divide-y ${isDark ? 'divide-DarkBG1 ' : 'divide-LightBG3'}`}
+              className={`divide-y ${isDark ? 'divide-DarkBG1' : 'divide-LightBG3'}`}
             >
               {paginatedData.map((row, index) => (
                 <TableRow
-                  key={index}
+                  key={row.id}
                   row={row}
                   columns={columns}
                   selectable={selectable}
@@ -142,6 +143,7 @@ export default function DataTable({
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onView={onView}
+                  onGenerateReport={onGenerateReport} // تمرير الدالة إلى TableRow
                   customActions={customActions}
                   buttons={buttons}
                   t={t}

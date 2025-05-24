@@ -11,11 +11,13 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\StudentsImport;
+use Illuminate\Support\Facades\Log;
 
 class StudentController extends Controller
 {
     public function index()
     {
+        \Log::info('Fetching classes for index page');
         $classes = ClassRoom::with('teachers:id,name')
             ->withCount('students')
             ->select('id', 'name', 'section', 'class_description', 'section_number', 'path')
@@ -63,7 +65,22 @@ class StudentController extends Controller
             'students' => $students,
             'classes' => $classes,
             'classId' => $id,
+            'query' => $request->input('query', '')
         ]);
+    }
+
+    public function search(Request $request)
+    {
+        $query = $request->input('query');
+        $student = Student::where('name', 'like', "%{$query}%")
+            ->orWhere('student_number', 'like', "%{$query}%")
+            ->first();
+
+        if ($student) {
+            return response()->json(['class_id' => $student->class_id]);
+        } else {
+            return response()->json(['error' => 'Student not found'], 404);
+        }
     }
 
     public function create(Request $request)
@@ -105,13 +122,9 @@ class StudentController extends Controller
                 'class_id.exists' => 'الصف المحدد غير موجود',
             ]);
 
-            // جلب الصف المختار
             $classroom = ClassRoom::findOrFail($validated['class_id']);
-
-            // تنسيق رقم الهاتف
             $phone = $this->formatPhoneNumber($validated['country_code'], $validated['parent_whatsapp']);
 
-            // إنشاء الطالب مع القيم المستمدة من الصف
             $student = Student::create([
                 'name' => $validated['name'],
                 'student_number' => $validated['student_number'],
@@ -122,7 +135,6 @@ class StudentController extends Controller
                 'parent_whatsapp' => $phone,
             ]);
 
-            // جلب بيانات الفصول لإعادتها إلى صفحة Create
             $classes = ClassRoom::select('id', 'name', 'path', 'section_number')->get();
 
             return Inertia::render('Students/Create', [
@@ -171,13 +183,9 @@ class StudentController extends Controller
                 'class_id.exists' => 'الصف المحدد غير موجود',
             ]);
 
-            // جلب الصف المختار
             $classroom = ClassRoom::findOrFail($validated['class_id']);
-
-            // دمج country_code مع parent_whatsapp
             $phone = $this->formatPhoneNumber($validated['country_code'], $validated['parent_whatsapp']);
 
-            // تحديث الطالب مع القيم المستمدة من الصف
             $student = Student::findOrFail($id);
             $student->update([
                 'name' => $validated['name'],
@@ -219,13 +227,13 @@ class StudentController extends Controller
         $absentCount = Attendance::where('status', 'absent')->count();
         $lateCount = Attendance::where('status', 'late')->count();
 
-        $totalCount = $presentCount + $absentCount + $lateCount;
+        $totalinguistic = $presentCount + $absentCount + $lateCount;
 
         $data = [
             'stats' => [
-                'presentRate' => $totalCount > 0 ? round(($presentCount / $totalCount) * 100, 2) : 0,
-                'absentRate' => $totalCount > 0 ? round(($absentCount / $totalCount) * 100, 2) : 0,
-                'lateRate' => $totalCount > 0 ? round(($lateCount / $totalCount) * 100, 2) : 0,
+                'presentRate' => $totalinguistic > 0 ? round(($presentCount / $totalinguistic) * 100, 2) : 0,
+                'absentRate' => $totalinguistic > 0 ? round(($absentCount / $totalinguistic) * 100, 2) : 0,
+                'lateRate' => $totalinguistic > 0 ? round(($lateCount / $totalinguistic) * 100, 2) : 0,
             ],
             'chart' => []
         ];

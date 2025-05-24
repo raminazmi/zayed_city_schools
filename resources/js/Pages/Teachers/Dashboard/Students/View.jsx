@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { useSelector } from "react-redux";
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Breadcrumb from '@/Components/Breadcrumb';
@@ -16,6 +16,8 @@ export default function TeacherStudentsViewPage({ auth, students, classes, class
     const language = useSelector((state) => state.language.current);
     const t = translations[language];
     const classroom = classes.find(cls => cls.id);
+    const { props } = usePage();
+    const searchQuery = props.query || '';
 
     const breadcrumbItems = [
         { label: t['student_management'], href: '/teacher/dashboard/students' },
@@ -23,8 +25,50 @@ export default function TeacherStudentsViewPage({ auth, students, classes, class
     ];
 
     const columns = [
-        { key: 'student_number', label: t['student_number'], sortable: true },
-        { key: 'student_name', label: t['student_name'], sortable: true },
+        {
+            key: 'student_number',
+            label: t['student_number'],
+            sortable: true,
+            render: (value) => {
+                if (!searchQuery) return value;
+                const lowerValue = value.toLowerCase();
+                const lowerQuery = searchQuery.toLowerCase();
+                const index = lowerValue.indexOf(lowerQuery);
+                if (index === -1) return value;
+                const before = value.substring(0, index);
+                const match = value.substring(index, index + searchQuery.length);
+                const after = value.substring(index + searchQuery.length);
+                return (
+                    <span>
+                        {before}
+                        <span className="bg-gray-500 text-white px-1 rounded">{match}</span>
+                        {after}
+                    </span>
+                );
+            }
+        },
+        {
+            key: 'student_name',
+            label: t['student_name'],
+            sortable: true,
+            render: (value) => {
+                if (!searchQuery) return value;
+                const lowerValue = value.toLowerCase();
+                const lowerQuery = searchQuery.toLowerCase();
+                const index = lowerValue.indexOf(lowerQuery);
+                if (index === -1) return value;
+                const before = value.substring(0, index);
+                const match = value.substring(index, index + searchQuery.length);
+                const after = value.substring(index + searchQuery.length);
+                return (
+                    <span>
+                        {before}
+                        <span className="bg-gray-500 text-white px-1 rounded">{match}</span>
+                        {after}
+                    </span>
+                );
+            }
+        },
         { key: 'parent_whatsapp', label: t['parent_whatsapp'], sortable: true },
         { key: 'class_description', label: t['class'], sortable: true },
     ];

@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\ClassRoomController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\UserController;
@@ -17,8 +18,8 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\ErrorController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\Teacher\TeacherReportController;
 
-// Public routes
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
@@ -30,14 +31,16 @@ Route::get('/', function () {
 
 Route::get('/unauthorized', [ErrorController::class, 'unauthorized'])->name('unauthorized');
 
-// Admin routes
+// Route::middleware('auth')->group(function () {
+//     Route::get('/api/reports/{id}', [ReportController::class, 'apiShow']);
+//     Route::post('/api/reports/generate', [ReportController::class, 'apiGenerateReport']);
+//     Route::post('/api/reports/send', [ReportController::class, 'apiSendReport']);
+// });
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    // Dashboard
     Route::get('/dashboard/home', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::post('/send-whatsapp', [MessageController::class, 'sendWhatsAppMessage']);
 
-    // Profile routes
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
         Route::patch('/', [ProfileController::class, 'update'])->name('update');
@@ -45,8 +48,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
 
-
-    // Attendance routes
     Route::prefix('dashboard/attendance')->name('attendance.')->group(function () {
         Route::get('/', [AttendanceController::class, 'index'])->name('index');
         Route::get('/add-new-attendance', [AttendanceController::class, 'create'])->name('create');
@@ -103,6 +104,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::delete('/{id}', [StudentController::class, 'destroy'])->name('destroy');
         Route::get('/{id}/view', [StudentController::class, 'view'])->name('view');
         Route::post('/import', [StudentController::class, 'import'])->name('import');
+        Route::get('/search', [StudentController::class, 'search'])->name('students.search');
+        Route::get('/{id}', [StudentController::class, 'show'])->name('show');
+    });
+
+    Route::prefix('dashboard/reports')->name('reports.')->group(function () {
+        Route::get('/', [ReportController::class, 'classes'])->name('index');
+        Route::get('/students/{id}', [ReportController::class, 'students'])->name('students');
+        Route::get('/view', [ReportController::class, 'reports'])->name('view');
+        Route::get('/academic-report', [ReportController::class, 'showAcademicReport'])->name('academic_report');
+        Route::post('/generate-report', [ReportController::class, 'generateReport'])->name('generateReport');
+        Route::post('/send-report', [ReportController::class, 'sendReport'])->name('sendReport');
+        Route::get('/{id}', [ReportController::class, 'show'])->name('show');
     });
 
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -113,7 +126,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 });
 
-// Teacher routes
 Route::middleware(['auth', 'teacher'])->prefix('teacher')->name('teacher.')->group(function () {
     Route::get('/dashboard/home', [TeacherDashboardController::class, 'index'])->name('dashboard');
     Route::get('/change-password', [TeacherDashboardController::class, 'changePassword'])->name('change-password');
@@ -121,7 +133,6 @@ Route::middleware(['auth', 'teacher'])->prefix('teacher')->name('teacher.')->gro
     Route::get('/classes', [TeacherDashboardController::class, 'classes'])->name('classes');
     Route::post('/send-whatsapp', [MessageController::class, 'sendWhatsAppMessage']);
 
-    // Attendance routes
     Route::prefix('dashboard/attendance')->name('attendance.')->group(function () {
         Route::get('/', [TeacherAttendanceController::class, 'index'])->name('index');
         Route::get('/add-new-attendance', [TeacherAttendanceController::class, 'create'])->name('create');
@@ -149,13 +160,21 @@ Route::middleware(['auth', 'teacher'])->prefix('teacher')->name('teacher.')->gro
         Route::put('/{id}', [TeacherStudentController::class, 'update'])->name('update');
         Route::delete('/{id}', [TeacherStudentController::class, 'destroy'])->name('destroy');
         Route::get('/{id}/view', [TeacherStudentController::class, 'view'])->name('view');
+        Route::get('/search', [TeacherStudentController::class, 'search'])->name('students.search');
+    });
+
+    Route::prefix('dashboard/reports')->name('reports.')->group(function () {
+        Route::get('/', [TeacherReportController::class, 'classes'])->name('index');
+        Route::get('/students/{id}', [TeacherReportController::class, 'students'])->name('students');
+        Route::get('/view', [TeacherReportController::class, 'reports'])->name('view');
+        Route::post('/send-report', [TeacherReportController::class, 'sendReport'])->name('sendReport');
+        Route::get('/{id}', [TeacherReportController::class, 'show'])->name('show');
     });
 
     Route::prefix('dashboard/classes')->name('classes.')->group(function () {
         Route::get('/getClasses', [ClassRoomController::class, 'getClasses'])->name('getClasses');
     });
 
-    // Teacher profile routes
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/edit', [TeacherProfileController::class, 'edit'])->name('edit');
         Route::patch('/', [TeacherProfileController::class, 'update'])->name('update');
@@ -164,10 +183,8 @@ Route::middleware(['auth', 'teacher'])->prefix('teacher')->name('teacher.')->gro
     });
 });
 
-// Authentication routes
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-// Include authentication routes from auth.php
 require __DIR__ . '/auth.php';

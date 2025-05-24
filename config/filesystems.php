@@ -56,6 +56,14 @@ return [
             'throw' => false,
         ],
 
+        'azure' => [
+            'driver' => 'azure',
+            'via' => \App\Services\AzureStorageDriver::class,
+            'connection_string' => env('AZURE_CONNECTION_STRING'),
+            'container' => env('AZURE_CONTAINER_NAME'),
+            'prefix' => env('AZURE_PREFIX', null),
+        ],
+
     ],
 
     /*

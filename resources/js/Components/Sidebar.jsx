@@ -8,7 +8,8 @@ import {
   UsersIcon,
   BuildingLibraryIcon,
   UserCircleIcon,
-  ArrowLeftEndOnRectangleIcon
+  ArrowLeftEndOnRectangleIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import ThemeToggle from '@/Components/ThemeToggle';
 import LanguageToggle from '@/Components/LanguageToggle';
@@ -20,11 +21,13 @@ export default function Sidebar({ role, className, showingDropdown, setShowingDr
     ? [
       { name: t['dashboard'], href: '/teacher/dashboard/home', icon: HomeIcon },
       { name: t['attendance'], href: '/teacher/dashboard/attendance', icon: ClipboardDocumentCheckIcon },
+      { name: t['reports'], href: '/teacher/dashboard/reports', icon: DocumentTextIcon },
       { name: t['student_management'], href: '/teacher/dashboard/students', icon: UserGroupIcon },
     ]
     : [
       { name: t['dashboard'], href: '/admin/dashboard/home', icon: HomeIcon },
       { name: t['attendance'], href: '/admin/dashboard/attendance', icon: ClipboardDocumentCheckIcon },
+      { name: t['reports'], href: '/admin/dashboard/reports', icon: DocumentTextIcon },
       { name: t['teachers_management'], href: '/admin/dashboard/teachers', icon: UsersIcon },
       { name: t['classroom_management'], href: '/admin/dashboard/classes', icon: BuildingLibraryIcon },
       { name: t['student_management'], href: '/admin/dashboard/students', icon: UserGroupIcon },
@@ -107,9 +110,8 @@ export default function Sidebar({ role, className, showingDropdown, setShowingDr
               {t['logout']}
             </Link>
           </div>
-        )
-        }
-      </div >
+        )}
+      </div>
     </div>
   );
 }

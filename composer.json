@@ -9,12 +9,18 @@
     "license": "MIT",
     "require": {
         "php": "^8.2.12",
+        "azure-oss/storage-blob-flysystem": "^1.2",
+        "cloudinary-labs/cloudinary-laravel": "^2.3",
+        "cloudinary/cloudinary_php": "^2.14",
         "guzzlehttp/guzzle": "^7.9",
         "inertiajs/inertia-laravel": "^0.6.4",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.2",
         "laravel/tinker": "^2.8",
+        "league/flysystem": "^3.29",
         "maatwebsite/excel": "^3.1",
+        "microsoft/azure-storage-blob": "^1.5",
+        "mpdf/mpdf": "^8.2",
         "omaralalwi/gpdf": "^1.0",
         "twilio/sdk": "^8.3"
     },

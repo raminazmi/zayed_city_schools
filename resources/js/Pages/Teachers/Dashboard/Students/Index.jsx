@@ -6,9 +6,13 @@ import Breadcrumb from '@/Components/Breadcrumb';
 import DataTable from '@/Components/DataTable/DataTable';
 import { translations } from '@translations';
 import { router } from '@inertiajs/react';
+import axios from 'axios';
+import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 
 export default function TeacherStudentsPage({ auth, classes, pagination }) {
     const [expandedTeachers, setExpandedTeachers] = useState({});
+    const [searchQuery, setSearchQuery] = useState('');
+    const [error, setError] = useState(null);
 
     const isDark = useSelector((state) => state.theme.darkMode === "dark");
     const language = useSelector((state) => state.language.current);
@@ -76,6 +80,25 @@ export default function TeacherStudentsPage({ auth, classes, pagination }) {
         router.visit(`/teacher/dashboard/students/${row.id}/view`);
     };
 
+    const handleSearch = async () => {
+        if (!searchQuery) return;
+
+        try {
+            const response = await axios.get('/teacher/dashboard/students/search', {
+                params: { query: searchQuery }
+            });
+
+            if (response.data.class_id) {
+                router.visit(`/teacher/dashboard/students/${response.data.class_id}/view?query=${encodeURIComponent(searchQuery)}`);
+            } else {
+                setError(t['student_not_found'] || 'Student not found');
+            }
+        } catch (error) {
+            setError(t['search_error']);
+            console.error('Search error:', error);
+        }
+    };
+
     return (
         <AuthenticatedLayout user={auth.user}>
             <Head title={t['student_management']} />
@@ -90,7 +113,30 @@ export default function TeacherStudentsPage({ auth, classes, pagination }) {
                                 </h1>
                             </div>
                         </div>
-                        <div className="mx-auto px-4 sm:px-6 md:px-8 mt-6">
+                        <div className="mx-auto px-4 sm:px-6 md:px-8 mt-4">
+                            <div className="flex items-center mx-1 sm:mx-4">
+                                <div className='w-[100%] md:w-[33%]'>
+                                    <p className="my-2 text-sm text-gray-600">
+                                        {t['search_student']}
+                                    </p>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                            className="block w-full pl-10 pr-3 py-2 border rounded-md leading-5 bg-white border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            placeholder={t['search']}
+                                        />
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                            <button onClick={handleSearch} className="text-gray-400 hover:text-gray-500">
+                                                <MagnifyingGlassIcon className="h-5 w-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+                                </div>
+                            </div>
                             <DataTable
                                 columns={columns}
                                 data={tableData}
