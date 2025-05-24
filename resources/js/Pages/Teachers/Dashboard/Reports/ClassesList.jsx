@@ -14,26 +14,71 @@ export default function TeacherClassesList({ auth, classes }) {
     const t = translations[language] || translations['en'];
     const [searchQuery, setSearchQuery] = useState('');
     const [error, setError] = useState(null);
+    const [expandedTeachers, setExpandedTeachers] = useState({});
 
     const breadcrumbItems = [
         { label: t['reports'] || 'Reports', href: '/teacher/dashboard/reports' },
         { label: t['classes'] || 'Classes' },
     ];
 
+    const shortenTeacherName = (teacherName) => {
+        const names = teacherName.trim().split(' ');
+        if (names.length < 2) {
+            return teacherName;
+        }
+        const firstName = names[0];
+        const secondName = names[1].substring(0, 4);
+        return `${firstName} ${secondName}..`;
+    };
+
     const columns = [
         { key: 'class_name', label: t['class_name'] || 'Class Name', sortable: true },
         { key: 'section', label: t['section'] || 'Section', sortable: true },
         { key: 'students_count', label: t['numbers_of_students'] || 'Number of Students', sortable: true },
-        { key: 'teacher_name', label: t['teacher_name'] || 'Teacher', sortable: true },
+        {
+            key: 'teacher_name',
+            label: t['teacher_name'] || 'Teacher',
+            sortable: true,
+            render: (value, row) => {
+                const isExpanded = expandedTeachers[row.id];
+                const teacherNames = row.teacher_name.split(',').map(name => name.trim());
+                const shortenedNames = teacherNames.map(name => shortenTeacherName(name)).join(', ');
+                const fullNames = row.teacher_name || '-';
+
+                const displayText = isExpanded ? fullNames : shortenedNames;
+
+                return (
+                    <span
+                        onClick={() => toggleTeacherNames(row.id)}
+                        className="cursor-pointer text-blue-500 hover:underline"
+                    >
+                        {displayText}
+                    </span>
+                );
+            },
+        },
     ];
 
-    const tableData = classes.map(classItem => ({
-        id: classItem.id,
-        class_name: classItem.class_name,
-        section: classItem.section,
-        students_count: classItem.students_count,
-        teacher_name: classItem.teacher_name,
-    }));
+    const tableData = classes.map(classItem => {
+        const teacherNames = classItem.teacher_name || '-';
+        const teacherNamesArray = teacherNames.split(',').map(name => name.trim());
+        const shortenedNames = teacherNamesArray.map(name => shortenTeacherName(name)).join(', ');
+
+        return {
+            id: classItem.id,
+            class_name: classItem.class_name,
+            section: classItem.section,
+            students_count: classItem.students_count,
+            teacher_name: teacherNames,
+        };
+    });
+
+    const toggleTeacherNames = (classId) => {
+        setExpandedTeachers(prev => ({
+            ...prev,
+            [classId]: !prev[classId],
+        }));
+    };
 
     const handleView = (row) => {
         router.get(`/teacher/dashboard/reports/students/${row.id}`);
