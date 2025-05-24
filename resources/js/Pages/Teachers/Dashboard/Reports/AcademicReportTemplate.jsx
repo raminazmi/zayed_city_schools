@@ -99,7 +99,6 @@ const TeacherAcademicReportTemplate = ({ studentDetails, classroom, data, onInpu
                     </tr>
                 </tbody>
             </table>
-            <h3 className="text-lg font-semibold mb-2">المواد الدراسية</h3>
             <table className="w-full border-collapse mb-4">
                 <thead>
                     <tr>

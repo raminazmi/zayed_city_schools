@@ -84,7 +84,6 @@ const TeacherBehavioralReportTemplate = ({ studentDetails, classroom, data, onIn
                     </tr>
                 </tbody>
             </table>
-            <h3 className="text-lg font-semibold mb-2">السلوكيات</h3>
             <table className="w-full border-collapse mb-4">
                 <thead>
                     <tr>
