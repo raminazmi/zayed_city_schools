@@ -17,8 +17,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\ErrorController;
-use App\Http\Controllers\MessageController;
 use App\Http\Controllers\Teacher\TeacherReportController;
+use App\Http\Controllers\Admin\MessageController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -116,6 +116,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/generate-report', [ReportController::class, 'generateReport'])->name('generateReport');
         Route::post('/send-report', [ReportController::class, 'sendReport'])->name('sendReport');
         Route::get('/{id}', [ReportController::class, 'show'])->name('show');
+    });
+
+    Route::prefix('dashboard/messages')->name('messages.')->group(function () {
+        Route::get('/', [MessageController::class, 'index'])->name('index');
+        Route::post('/send', [MessageController::class, 'sendMessage'])->name('send');
+        Route::get('/get-students/{classId}', [MessageController::class, 'getStudentsByClass'])->name('getStudents');
+        Route::get('/search-students', [MessageController::class, 'searchStudents'])->name('searchStudents');
     });
 
     Route::get('/users', [UserController::class, 'index'])->name('users.index');

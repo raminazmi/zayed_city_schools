@@ -10,6 +10,7 @@ import {
   UserCircleIcon,
   ArrowLeftEndOnRectangleIcon,
   DocumentTextIcon,
+  EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 import ThemeToggle from '@/Components/ThemeToggle';
 import LanguageToggle from '@/Components/LanguageToggle';
@@ -31,6 +32,7 @@ export default function Sidebar({ role, className, showingDropdown, setShowingDr
       { name: t['teachers_management'], href: '/admin/dashboard/teachers', icon: UsersIcon },
       { name: t['classroom_management'], href: '/admin/dashboard/classes', icon: BuildingLibraryIcon },
       { name: t['student_management'], href: '/admin/dashboard/students', icon: UserGroupIcon },
+      { name: t['messages'], href: '/admin/dashboard/messages', icon: EnvelopeIcon },
     ];
 
   const firstLetter = user?.name?.charAt(0).toUpperCase();
