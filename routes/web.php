@@ -116,6 +116,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/generate-report', [ReportController::class, 'generateReport'])->name('generateReport');
         Route::post('/send-report', [ReportController::class, 'sendReport'])->name('sendReport');
         Route::get('/{id}', [ReportController::class, 'show'])->name('show');
+        Route::post('/save-draft', [ReportController::class, 'saveDraft'])->name('saveDraft');
+        Route::get('/draft/{studentId}/{reportType}', [ReportController::class, 'getDraft'])->name('getDraft');
     });
 
     Route::prefix('dashboard/messages')->name('messages.')->group(function () {

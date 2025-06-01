@@ -13,6 +13,7 @@ class StudentGrade extends Model
 
     protected $fillable = [
         'student_id',
+        'academic_report_id',
         'subject_name',
         'mark',
         'notes',
@@ -20,12 +21,17 @@ class StudentGrade extends Model
     ];
 
     protected $casts = [
-        'mark' => 'integer',
+        'mark' => 'string',
         'date_added' => 'datetime',
     ];
 
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id');
+    }
+
+    public function academicReport()
+    {
+        return $this->belongsTo(AcademicReport::class, 'academic_report_id');
     }
 }

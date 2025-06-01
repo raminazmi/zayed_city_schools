@@ -14,6 +14,7 @@ use Omaralalwi\Gpdf\Gpdf;
 use Omaralalwi\Gpdf\GpdfConfig;
 use App\Models\StudentGrade;
 use Cloudinary\Cloudinary;
+use App\Models\BehavioralAspect;
 
 class ReportController extends Controller
 {
@@ -64,32 +65,60 @@ class ReportController extends Controller
             return redirect()->route('admin.reports.index')->withErrors(['classroom' => 'الفصل غير موجود']);
         }
 
+        // استرجاع المسودة إذا كانت موجودة
+        $draft = AcademicReport::where('student_id', $studentId)->where('is_draft', true)->first();
+        $draftData = [];
+        if ($draft) {
+            $subjects = StudentGrade::where('academic_report_id', $draft->id)->get()->map(function ($grade) {
+                return [
+                    'name' => $grade->subject_name,
+                    'mark' => $grade->mark ?? 'NA',
+                    'notes' => $grade->notes ?? '',
+                ];
+            })->toArray();
+
+            $draftData = [
+                'student_id' => $draft->student_id,
+                'report_type' => $draft->report_type,
+                'academic_year' => $draft->academic_year,
+                'term' => $draft->term,
+                'reporting_period' => $draft->reporting_period,
+                'subjects' => $subjects,
+                'is_draft' => $draft->is_draft,
+            ];
+        }
+
+        // القيم الافتراضية
+        $defaultData = [
+            'academic_year' => '2024/2025',
+            'term' => 'الفصل الأول',
+            'reporting_period' => 'الفترة الأولى',
+            'subjects' => array_map(function ($name) {
+                return ['name' => $name, 'mark' => '', 'notes' => ''];
+            }, [
+                'التربية الإسلامية',
+                'اللغة العربية',
+                'الدراسات الاجتماعية والتربية الأخلاقية',
+                'اللغة الإنجليزية English Language',
+                'الرياضيات Mathematics',
+                'العلوم Science',
+                'الفيزياء Physics',
+                'الكيمياء Chemistry',
+                'الأحياء Biology',
+                'العلوم الصحية Health Science',
+                'الحوسبة و التصميم الإبداعي و الابتكار Computing Creative Design and Innovation',
+                'التربية البدنية Physical Education',
+                'الفنون Arts'
+            ]),
+        ];
+
+        $initialData = array_merge($defaultData, $draftData);
+
         return Inertia::render('Reports/AcademicReportTemplate', [
             'auth' => ['user' => auth()->user()],
             'student' => $student,
             'classroom' => $classroom,
-            'initialData' => [
-                'academic_year' => '2024/2025',
-                'term' => 'الفصل الأول',
-                'reporting_period' => 'الفترة الأولى',
-                'subjects' => array_map(function ($name) {
-                    return ['name' => $name, 'mark' => '', 'notes' => ''];
-                }, [
-                    'التربية الإسلامية',
-                    'اللغة العربية',
-                    'الدراسات الاجتماعية والتربية الأخلاقية',
-                    'اللغة الإنجليزية English Language',
-                    'الرياضيات Mathematics',
-                    'العلوم Science',
-                    'الفيزياء Physics',
-                    'الكيمياء Chemistry',
-                    'الأحياء Biology',
-                    'العلوم الصحية Health Science',
-                    'الحوسبة و التصميم الإبداعي و الابتكار Computing Creative Design and Innovation',
-                    'التربية البدنية Physical Education',
-                    'الفنون Arts'
-                ]),
-            ],
+            'initialData' => $initialData,
         ]);
     }
 
@@ -138,6 +167,152 @@ class ReportController extends Controller
         }
     }
 
+    public function saveDraft(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'student_id' => 'required|exists:students,id',
+                'report_type' => 'required|in:behavioral,academic',
+                'academic_year' => 'required|string',
+                'term' => 'required|string',
+                'week' => 'nullable|string',
+                'reporting_period' => 'nullable|string',
+                'subjects' => 'nullable|array',
+                'subjects.*.name' => 'nullable|string',
+                'subjects.*.mark' => 'nullable|string',
+                'subjects.*.notes' => 'nullable|string',
+                'behavioralAspects' => 'nullable|array',
+                'behavioralAspects.*.action' => 'nullable|string',
+                'behavioralAspects.*.aspect' => 'nullable|string',
+                'behavioralAspects.*.mark' => 'nullable|string',
+                'socialWorkerNotes' => 'nullable|string',
+                'socialWorker' => 'nullable|string',
+                'is_draft' => 'required|boolean',
+            ]);
+
+            if ($validated['report_type'] === 'academic') {
+                $report = AcademicReport::updateOrCreate(
+                    ['student_id' => $validated['student_id'], 'is_draft' => true],
+                    [
+                        'report_type' => 'academic',
+                        'academic_year' => $validated['academic_year'],
+                        'term' => $validated['term'],
+                        'reporting_period' => $validated['reporting_period'] ?? null,
+                        'is_draft' => true,
+                    ]
+                );
+
+                if (!empty($validated['subjects'])) {
+                    StudentGrade::where('academic_report_id', $report->id)->delete();
+
+                    foreach ($validated['subjects'] as $subject) {
+                        if (!empty($subject['name']) && (isset($subject['mark']) || !empty($subject['notes']))) {
+                            StudentGrade::updateOrCreate([
+                                'student_id' => $validated['student_id'],
+                                'academic_report_id' => $report->id,
+                                'subject_name' => $subject['name'],
+                                'mark' => $subject['mark'] ?? '', // دعم القيم الفارغة أو "NA"
+                                'notes' => $subject['notes'] ?? '',
+                                'date_added' => now(),
+                            ]);
+                        }
+                    }
+                }
+            } else {
+                $report = BehavioralReport::updateOrCreate(
+                    ['student_id' => $validated['student_id'], 'is_draft' => true],
+                    [
+                        'report_type' => 'behavioral',
+                        'academic_year' => $validated['academic_year'],
+                        'term' => $validated['term'],
+                        'week' => $validated['week'] ?? null,
+                        'social_worker_notes' => $validated['socialWorkerNotes'] ?? '',
+                        'social_worker' => $validated['socialWorker'] ?? '',
+                        'behavioral_aspects' => $validated['behavioralAspects'] ?? [],
+                        'is_draft' => true,
+                    ]
+                );
+
+                if (!empty($validated['behavioralAspects'])) {
+                    BehavioralAspect::where('behavioral_report_id', $report->id)->delete();
+                    foreach ($validated['behavioralAspects'] as $aspect) {
+                        if (!empty($aspect['aspect']) || !empty($aspect['action']) || !empty($aspect['mark'])) {
+                            BehavioralAspect::updateOrCreate([
+                                'behavioral_report_id' => $report->id,
+                                'aspect' => $aspect['aspect'] ?? '',
+                                'action' => $aspect['action'] ?? '',
+                                'mark' => $aspect['mark'] === 'NA' ? null : $aspect['mark'],
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            return response()->json(['message' => 'تم حفظ المسودة بنجاح']);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation error in saveDraft: ', $e->errors());
+            return response()->json(['error' => 'فشل التحقق من البيانات: ' . json_encode($e->errors())], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error in saveDraft: ' . $e->getMessage());
+            return response()->json(['error' => 'فشل في حفظ المسودة: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function getDraft($studentId, $reportType)
+    {
+        if ($reportType === 'academic') {
+            $draft = AcademicReport::where('student_id', $studentId)->where('is_draft', true)->first();
+            if ($draft) {
+                $subjects = StudentGrade::where('academic_report_id', $draft->id)->get()->map(function ($grade) {
+                    return [
+                        'name' => $grade->subject_name,
+                        'mark' => $grade->mark ?? 'NA',
+                        'notes' => $grade->notes ?? '',
+                    ];
+                })->toArray();
+
+                return response()->json([
+                    'draft' => [
+                        'student_id' => $draft->student_id,
+                        'report_type' => $draft->report_type,
+                        'academic_year' => $draft->academic_year,
+                        'term' => $draft->term,
+                        'reporting_period' => $draft->reporting_period,
+                        'subjects' => $subjects,
+                        'is_draft' => $draft->is_draft,
+                    ]
+                ]);
+            }
+        } else {
+            $draft = BehavioralReport::where('student_id', $studentId)->where('is_draft', true)->first();
+            if ($draft) {
+                $aspects = BehavioralAspect::where('behavioral_report_id', $draft->id)->get()->map(function ($aspect) {
+                    return [
+                        'aspect' => $aspect->aspect,
+                        'action' => $aspect->action,
+                        'mark' => $aspect->mark ?? 'NA',
+                    ];
+                })->toArray();
+
+                return response()->json([
+                    'draft' => [
+                        'student_id' => $draft->student_id,
+                        'report_type' => $draft->report_type,
+                        'academic_year' => $draft->academic_year,
+                        'term' => $draft->term,
+                        'week' => $draft->week,
+                        'behavioralAspects' => $aspects,
+                        'socialWorkerNotes' => $draft->social_worker_notes,
+                        'socialWorker' => $draft->social_worker,
+                        'is_draft' => $draft->is_draft,
+                    ]
+                ]);
+            }
+        }
+
+        return response()->json(['draft' => null]);
+    }
+
     public function sendReport(Request $request)
     {
         try {
@@ -145,7 +320,7 @@ class ReportController extends Controller
                 'student_id' => 'required|exists:students,id',
                 'report_type' => 'required|in:behavioral,academic',
                 'subjects' => 'array|required_if:report_type,academic',
-                'subjects.*.mark' => 'nullable|integer|min:0|max:100',
+                'subjects.*.mark' => 'nullable|string',
                 'subjects.*.notes' => 'nullable|string',
                 'academic_year' => 'required_if:report_type,academic|required_if:report_type,behavioral|string',
                 'term' => 'required_if:report_type,academic|required_if:report_type,behavioral|string',
@@ -156,10 +331,8 @@ class ReportController extends Controller
                 'behavioralAspects.*.aspect' => 'nullable|string',
                 'socialWorkerNotes' => 'nullable|string',
                 'socialWorker' => 'nullable|string',
+                'is_draft' => 'required|boolean',
             ], [
-                'subjects.*.mark.max' => 'يجب ألا تتجاوز علامة المادة ١٠٠.',
-                'subjects.*.mark.min' => 'يجب ألا تقل علامة المادة عن ٠.',
-                'subjects.*.mark.integer' => 'يجب أن تكون علامة المادة رقماً صحيحاً.',
                 'subjects.required_if' => 'حقل المواد مطلوب للتقرير الأكاديمي.',
                 'academic_year.required_if' => 'حقل السنة الأكاديمية مطلوب.',
                 'term.required_if' => 'حقل الفصل الدراسي مطلوب.',
@@ -175,6 +348,12 @@ class ReportController extends Controller
             }
 
             if ($validated['report_type'] === 'behavioral') {
+                $behavioralReports = BehavioralReport::where('student_id', $student->id)->get();
+                foreach ($behavioralReports as $report) {
+                    BehavioralAspect::where('behavioral_report_id', $report->id)->delete();
+                    $report->delete();
+                }
+
                 $data = [
                     'student' => $student,
                     'classroom' => $classroom,
@@ -187,12 +366,13 @@ class ReportController extends Controller
                 ];
                 $view = 'reports.send_behavioral';
                 $filename = 'behavioral_report_' . $student->student_number . '.pdf';
-                $caption = 'التقرير السلوكي للطالب: ' . $student->name . "\n" .
-                    'العام الدراسي: ' . $validated['academic_year'] . "\n" .
-                    'الفصل: ' . $validated['term'] . "\n" .
-                    'الأسبوع: ' . $validated['week'];
+                $caption = "السيد ولي أمر الطالب {$student->name} - المقيد في الصف {$classroom->name} مرفق لكم التقرير السلوكي للطالب\n" .
+                    "العام الدراسي: {$validated['academic_year']}\n" .
+                    "الفصل: {$validated['term']}\n" .
+                    "الأسبوع: {$validated['week']}\n" .
+                    "مع تحيات مدارس مدينة زايد ح٢ و٣ ذكور";
 
-                BehavioralReport::create([
+                BehavioralReport::updateOrCreate([
                     'student_id' => $student->id,
                     'report_type' => 'behavioral',
                     'academic_year' => $validated['academic_year'],
@@ -203,8 +383,15 @@ class ReportController extends Controller
                     'social_worker' => $validated['socialWorker'],
                     'report_file_url' => '',
                     'date_sent' => now(),
+                    'is_draft' => false,
                 ]);
             } else {
+                $academicReports = AcademicReport::where('student_id', $student->id)->get();
+                foreach ($academicReports as $report) {
+                    StudentGrade::where('academic_report_id', $report->id)->delete();
+                    $report->delete();
+                }
+
                 $subjectsList = [
                     'التربية الإسلامية',
                     'اللغة العربية',
@@ -223,21 +410,32 @@ class ReportController extends Controller
                 $subjects = array_map(function ($name, $index) use ($validated) {
                     return [
                         'name' => $name,
-                        'mark' => $validated['subjects'][$index]['mark'] ?? null,
+                        'mark' => $validated['subjects'][$index]['mark'] ?? '',
                         'notes' => $validated['subjects'][$index]['notes'] ?? '',
                     ];
                 }, $subjectsList, array_keys($subjectsList));
 
+                $academicReport = AcademicReport::updateOrCreate([
+                    'student_id' => $student->id,
+                    'report_type' => 'academic',
+                    'academic_year' => $validated['academic_year'],
+                    'term' => $validated['term'],
+                    'reporting_period' => $validated['reporting_period'],
+                    'report_file_url' => '',
+                    'date_sent' => now(),
+                    'is_draft' => false,
+                ]);
+
                 foreach ($subjects as $subject) {
-                    if (($subject['mark'] !== null && $subject['mark'] !== '') || ($subject['notes'] !== null && $subject['notes'] !== '')) {
-                        StudentGrade::updateOrCreate(
-                            ['student_id' => $student->id, 'subject_name' => $subject['name']],
-                            [
-                                'mark' => $subject['mark'] !== '' ? $subject['mark'] : null,
-                                'notes' => $subject['notes'] ?? '',
-                                'date_added' => now(),
-                            ]
-                        );
+                    if (!empty($subject['mark']) || !empty($subject['notes'])) {
+                        StudentGrade::updateOrCreate([
+                            'student_id' => $student->id,
+                            'academic_report_id' => $academicReport->id,
+                            'subject_name' => $subject['name'],
+                            'mark' => $subject['mark'] === 'NA' ? null : $subject['mark'],
+                            'notes' => $subject['notes'] ?? '',
+                            'date_added' => now(),
+                        ]);
                     }
                 }
 
@@ -251,20 +449,10 @@ class ReportController extends Controller
                 ];
                 $view = 'reports.send_academic';
                 $filename = 'academic_report_' . $student->student_number . '.pdf';
-                $caption = 'التقرير الأكاديمي للطالب: ' . $student->name . "\n" .
-                    'العام الدراسي: ' . $validated['academic_year'] . "\n" .
-                    'الفصل الدراسي: ' . $validated['term'] . "\n" .
-                    'الفترة الاختبارية: ' . $validated['reporting_period'];
-
-                AcademicReport::create([
-                    'student_id' => $student->id,
-                    'report_type' => 'academic',
-                    'academic_year' => $validated['academic_year'],
-                    'term' => $validated['term'],
-                    'reporting_period' => $validated['reporting_period'],
-                    'report_file_url' => '',
-                    'date_sent' => now(),
-                ]);
+                $caption = "السيد ولي أمر الطالب {$student->name} - المقيد في الصف {$classroom->name} مرفق لكم التقرير الأكاديمي للتقويم المستمر للفصل الدراسي {$validated['term']}\n" .
+                    "العام الدراسي: {$validated['academic_year']}\n" .
+                    "الفترة الاختبارية: {$validated['reporting_period']}\n" .
+                    "مع تحيات مدارس مدينة زايد ح٢ و٣ ذكور";
             }
 
             $html = view($view, $data)->render();

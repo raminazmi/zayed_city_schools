@@ -17,6 +17,7 @@ class BehavioralReport extends Model
         'social_worker',
         'report_file_url',
         'date_sent',
+        'is_draft'
     ];
 
     protected $casts = [

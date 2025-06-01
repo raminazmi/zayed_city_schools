@@ -251,7 +251,7 @@
             @foreach($subjects_list as $index => $subject_name)
             <tr>
                 <td style="text-align: center;">{{ $subjects[$index]['notes'] ?? '' }}</td>
-                <td style="text-align: center;">{{ $subjects[$index]['mark'] ?? '' }}</td>
+                <td style="text-align: center;">{{ $subjects[$index]['mark'] ?? 'NA' }}</td>
                 <td style="text-align: center;" class="subjects-column">{{ $subject_name }}</td>
             </tr>
             @endforeach
@@ -260,8 +260,12 @@
             <tr>
                 <td><input type="text" name="subjects[{{ $index }}][notes]" style="width: 98%; text-align:center;"
                         value="{{ old('subjects.' . $index . '.notes') }}"></td>
-                <td><input type="number" min="0" max="100" name="subjects[{{ $index }}][mark]"
-                        style="width: 70px; text-align:center;" value="{{ old('subjects.' . $index . '.mark') }}"></td>
+                <td style="display: flex; justify-content: center; align-items: center; gap: 5px;">
+                    <input type="number" min="0" max="100" name="subjects[{{ $index }}][mark]"
+                        style="width: 70px; text-align:center;" value="{{ old('subjects.' . $index . '.mark') }}">
+                    <button type="button" onclick="this.previousElementSibling.value='NA';"
+                        style="padding: 2px 8px; font-size: 12px; background: #e0e0e0; border: 1px solid #888; border-radius: 2px;">NA</button>
+                </td>
                 <td class="subjects-column">{{ $subject_name }}</td>
             </tr>
             @endforeach
